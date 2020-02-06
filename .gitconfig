@@ -1,0 +1,14 @@
+[user]
+	name = daern91
+	email = daniel_eriksson_8@hotmail.com
+[push]
+	default = current
+[alias]
+	hist = log --all --graph --decorate --oneline
+	tagsbydate = log --tags --simplify-by-decoration --pretty=\"format:%ai %d\"
+	m = checkout master
+	b = branch
+[sequence]
+	editor = vi
+[core]
+	editor = vim

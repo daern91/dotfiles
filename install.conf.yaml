@@ -1,0 +1,17 @@
+- defaults:
+    link:
+      relink: true
+
+- clean: ['~']
+
+- link:
+    ~/.dotfiles: ''
+    ~/.tmux.conf: .tmux.conf
+    ~/.vim: .vim
+    ~/.vimrc: .vimrc
+    ~/.zshrc: .zshrc
+    ~/variables.sh: variables.sh
+
+- create:
+    - ~/downloads
+    - ~/.vim/undodir
