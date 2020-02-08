@@ -30,12 +30,13 @@ Plug 'vim-airline/vim-airline'
 Plug 'liuchengxu/vista.vim'
 Plug 'kien/rainbow_parentheses.vim'
 Plug 'junegunn/vim-peekaboo'
-Plug 'junegunn/limelight.vim'
 Plug 'tpope/vim-obsession'
 Plug 'dhruvasagar/vim-prosession'
 Plug 'mhinz/vim-startify'
 
 call plug#end()
+
+let mapleader = "\<Space>"
 
 " How each level is indented and what to prepend.
 " This could make the display more compact or more spacious.
@@ -56,6 +57,9 @@ let g:NERDTreeShowIgnoredStatus = 1
 let NERDTreeQuitOnOpen=1
 
 " coc settings
+nmap <silent> E <Plug>(coc-diagnostic-prev)
+nmap <silent> W <Plug>(coc-diagnostic-next)
+nmap <silent> <leader>l <Plug>(coc-diagnostic-info)
 nmap <silent> gd <Plug>(coc-definition)
 nmap <silent> gy <Plug>(coc-type-definition)
 nmap <silent> gi <Plug>(coc-implementation)
@@ -177,7 +181,18 @@ let vim_markdown_preview_github=1
 command! -bang -nargs=* Rg call fzf#vim#grep("rg --column --line-number --no-heading --color=always --smart-case ".shellescape(<q-args>), 1, {'options': '--delimiter : --nth 4..'}, <bang>0)
 " Rg current word
 nnoremap <silent> <Leader>rg :Rg <C-R><C-W><CR>
+
+" File list
 nnoremap <C-p> :<C-u>FZF<CR>
+" Buffer list
+nmap <leader>; :Buffers<CR>
+
+" Quick-save
+nmap <leader>w :w<CR>
+
+" <leader>s/S for Rg/RgRaw search
+noremap <leader>s :Rg <cr>
+noremap <leader>S :RgRaw
 
 function! s:buflist()
   redir => ls
@@ -199,32 +214,8 @@ nnoremap <silent> <Leader><Enter> :call fzf#run({
 
 nn <Leader><Leader> <c-^>
 
-nmap <Leader>l <Plug>(Limelight)
-xmap <Leader>l <Plug>(Limelight)
-
-" Color name (:help cterm-colors) or ANSI code
-let g:limelight_conceal_ctermfg = 'gray'
-let g:limelight_conceal_ctermfg = 240
-
-" Color name (:help gui-colors) or RGB color
-" let g:limelight_conceal_guifg = 'DarkGray'
-" let g:limelight_conceal_guifg = '#777777'
-
-" Default: 0.5
-" let g:limelight_default_coefficient = 0.7
-
-" Number of preceding/following paragraphs to include (default: 0)
-let g:limelight_paragraph_span = 1
-
-" Beginning/end of paragraph
-"   When there's no empty line between the paragraphs
-"   and each paragraph starts with indentation
-let g:limelight_bop = '^\s'
-let g:limelight_eop = '\ze\n^\s'
-
-" Highlighting priority (default: 10)
-"   Set it to -1 not to overrule hlsearch
-" let g:limelight_priority = -1
+noremap <leader>p "+p
+noremap <leader>c :%y+ <cr>
 
 " This option creates & uses a 'default' session to be
 " used in case when launching vim and a corresponding

@@ -35,4 +35,4 @@ PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/MacGPG2/bin:/Users/
 export LC_ALL=en_GB.UTF-8
 export FZF_DEFAULT_COMMAND='rg --files --follow --hidden'
 
-source ./variables.sh
+source ~/variables.sh
