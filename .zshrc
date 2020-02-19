@@ -14,6 +14,7 @@ alias gck='git checkout $(git branch | fzf)'
 gst() {
     git stash apply $(git stash list | fzf | awk '{print$1}' | rev | cut -c 2- | rev)
 }
+alias tma='tmux attach -t $(tmux ls | fzf | cut -d ':' -f1)'
 
 if $(command -v exa > /dev/null); then 
 	alias l='exa'
