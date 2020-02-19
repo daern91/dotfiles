@@ -6,33 +6,44 @@ endif
 
 call plug#begin('~/.vim/plugged')
 
+" VIM enhancements
+Plug 'ciaranm/securemodelines'
 Plug 'scrooloose/nerdtree'
-" Plug 'Xuyuanp/nerdtree-git-plugin'
-Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
-Plug 'junegunn/fzf.vim'
-Plug 'jesseleite/vim-agriculture'
-Plug 'neoclide/coc.nvim', {'branch': 'release'}
-Plug 'prettier/vim-prettier', { 'do': 'yarn install' }
+Plug 'justinmk/vim-sneak'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-rhubarb'
 Plug 'tpope/vim-commentary'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-unimpaired'
 Plug 'tpope/vim-abolish'
+Plug 'junegunn/vim-peekaboo'
+
+" GUI enhancements
+Plug 'machakann/vim-highlightedyank'
+Plug 'vim-airline/vim-airline'
+Plug 'kien/rainbow_parentheses.vim'
+Plug 'arcticicestudio/nord-vim'
+Plug 'JamshedVesuna/vim-markdown-preview'
+
+" Fuzzy finder
+Plug 'airblade/vim-rooter'
+Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
+Plug 'junegunn/fzf.vim'
+Plug 'jesseleite/vim-agriculture'
+
+" Language support
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
+Plug 'prettier/vim-prettier', { 'do': 'yarn install' }
+
 Plug 'leafgarland/typescript-vim'
 Plug 'rust-lang/rust.vim'
-" Plug 'haishanh/night-owl.vim'
-Plug 'arcticicestudio/nord-vim'
 Plug 'mattn/emmet-vim'
-Plug 'jiangmiao/auto-pairs'
-Plug 'JamshedVesuna/vim-markdown-preview'
-Plug 'vim-airline/vim-airline'
-Plug 'liuchengxu/vista.vim'
-Plug 'kien/rainbow_parentheses.vim'
-Plug 'junegunn/vim-peekaboo'
+Plug 'xabikos/vscode-javascript'
+Plug 'andys8/vscode-jest-snippets'
+
+" Session management
 Plug 'tpope/vim-obsession'
 Plug 'dhruvasagar/vim-prosession'
-Plug 'mhinz/vim-startify'
 
 call plug#end()
 
@@ -57,17 +68,21 @@ let g:NERDTreeShowIgnoredStatus = 1
 let NERDTreeQuitOnOpen=1
 
 " coc settings
-nmap <silent> E <Plug>(coc-diagnostic-prev)
-nmap <silent> W <Plug>(coc-diagnostic-next)
+nmap <silent> ]E <Plug>(coc-diagnostic-next)
+nmap <silent> [E <Plug>(coc-diagnostic-prev)
 nmap <silent> <leader>l <Plug>(coc-diagnostic-info)
 nmap <silent> gd <Plug>(coc-definition)
 nmap <silent> gy <Plug>(coc-type-definition)
 nmap <silent> gi <Plug>(coc-implementation)
 nmap <silent> gr <Plug>(coc-references)
 
+inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
+	\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+
+" Note：to enable formatOnType, add ` "coc.preferences.formatOnType": true`
 set encoding=UTF-8
 
-" if hidden is not set, TextEdit might fail.
+" automatically hide buffers so we can navigate away from them without warnings
 set hidden
 
 " Vim treat numerals as decimal, regardless of whether they are padded with zero, e.g., octal notation.
@@ -135,15 +150,28 @@ autocmd BufWritePre *.js,*.jsx,*.mjs,*.ts,*.tsx,*.css,*.less,*.scss,*.json,*.gra
 set suffixesadd+=.js,.jsx,.ts,.tsx
 set path+=$PWD/node_modules
 
+" number of spaces per indentation level: a number or 'auto' (use
+" softtabstop)
+" default: 'auto'
+let g:prettier#config#tab_width = '2'
+
+" use tabs instead of spaces: true, false, or auto (use the expandtab setting).
+" default: 'auto'
+let g:prettier#config#use_tabs = 'false'
+
 " rustfmt
 let g:rustfmt_autosave = 1
 
-""""" enable 24bit true color
-
-if (has("termguicolors"))
- set termguicolors
+" deal with colors
+if !has('gui_running')
+  set t_Co=256
 endif
-
+if (match($TERM, "-256color") != -1) && (match($TERM, "screen-256color") == -1)
+  " screen does not (yet) support truecolor
+  set termguicolors
+endif
+" Colors
+set background=dark
 colorscheme nord
 
 syntax enable
@@ -184,8 +212,6 @@ nnoremap <silent> <Leader>rg :Rg <C-R><C-W><CR>
 
 " File list
 nnoremap <C-p> :<C-u>FZF<CR>
-" Buffer list
-nmap <leader>; :Buffers<CR>
 
 " Quick-save
 nmap <leader>w :w<CR>
@@ -205,7 +231,10 @@ function! s:bufopen(e)
   execute 'buffer' matchstr(a:e, '^[ 0-9]*')
 endfunction
 
-nnoremap <silent> <Leader><Enter> :call fzf#run({
+" Buffer list
+" nmap <leader>; :Buffers<CR>
+
+nnoremap <silent> <Leader>; :call fzf#run({
 \   'source':  reverse(<sid>buflist()),
 \   'sink':    function('<sid>bufopen'),
 \   'options': '+m',
@@ -215,7 +244,14 @@ nnoremap <silent> <Leader><Enter> :call fzf#run({
 nn <Leader><Leader> <c-^>
 
 noremap <leader>p "+p
-noremap <leader>c :%y+ <cr>
+" noremap <leader>c :%y+ <cr>
+noremap <leader>c "+y
+
+noremap <leader>gs :Gstatus <cr>
+noremap <leader>gc :G commit <cr>
+noremap <leader>gp :Gpush <cr>
+noremap <leader>gd :Gdiffsplit <cr>
+noremap <leader>gb :Gbrowse <cr>
 
 " This option creates & uses a 'default' session to be
 " used in case when launching vim and a corresponding
@@ -225,3 +261,18 @@ noremap <leader>c :%y+ <cr>
 " Permanent undo
 set undodir=~/.vim/undodir
 set undofile
+
+" Show autocomplete menu
+set wildmenu
+set wildmode=full
+
+" Keep only current buffer, necessary when doing long sessions
+command! Bonly silent! execute "%bd|e#|bd#"
+
+" No arrow keys, force yourself to use the home row
+nnoremap <up> <nop>
+nnoremap <down> <nop>
+inoremap <up> <nop>
+inoremap <down> <nop>
+inoremap <left> <nop>
+inoremap <right> <nop>
