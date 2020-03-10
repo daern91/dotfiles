@@ -37,6 +37,7 @@ Plug 'prettier/vim-prettier', { 'do': 'yarn install' }
 
 Plug 'leafgarland/typescript-vim'
 Plug 'rust-lang/rust.vim'
+Plug 'arzg/vim-rust-syntax-ext'
 Plug 'mattn/emmet-vim'
 Plug 'xabikos/vscode-javascript'
 Plug 'andys8/vscode-jest-snippets'
