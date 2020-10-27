@@ -1,13 +1,5 @@
 eval $(thefuck --alias)
 
-if [ -f ~/.git-completion.zsh ]; then
-  . ~/.git-completion.zsh
-else
-  curl https://raw.githubusercontent.com/git/git/master/contrib/completion/git-completion.zsh -o ~/.git-completion.zsh
-  . ~/.git-completion.zsh
-  echo "Downloaded and applied git-completion for branch names"
-fi
-
 alias gbDA='git branch | egrep -v "(master|\*)" | xargs git branch -D'
 
 alias gck='git checkout $(git branch | fzf)'
@@ -37,3 +29,12 @@ export LC_ALL=en_GB.UTF-8
 export FZF_DEFAULT_COMMAND='rg --files --follow --hidden'
 
 source ~/variables.sh
+[[ /usr/local/bin/kubectl ]] && source <(kubectl completion zsh) # add autocomplete permanently to your zsh shell
+
+alias mux='pgrep -vx tmux > /dev/null && \
+		tmux new -d -s delete-me && \
+		tmux run-shell ~/.tmux/plugins/tmux-resurrect/scripts/restore.sh && \
+		tmux kill-session -t delete-me && \
+		tmux attach || tmux attach'
+
+eval "$(starship init zsh)"

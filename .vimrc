@@ -17,13 +17,25 @@ Plug 'tpope/vim-surround'
 Plug 'tpope/vim-unimpaired'
 Plug 'tpope/vim-abolish'
 Plug 'junegunn/vim-peekaboo'
+Plug 'tpope/vim-repeat'
+Plug 'tpope/vim-sleuth'
+
+" VIM/TMUX integration
+Plug 'benmills/vimux'
 
 " GUI enhancements
 Plug 'machakann/vim-highlightedyank'
 Plug 'vim-airline/vim-airline'
 Plug 'kien/rainbow_parentheses.vim'
 Plug 'arcticicestudio/nord-vim'
-Plug 'JamshedVesuna/vim-markdown-preview'
+Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install'  }
+Plug 'chriskempson/base16-vim'
+Plug 'morhetz/gruvbox'
+
+" Test integration
+" Plug 'janko/vim-test'
+" Plug 'jtumano/vim-test'
+Plug 'tyewang/vimux-jest-test'
 
 " Fuzzy finder
 Plug 'airblade/vim-rooter'
@@ -35,9 +47,10 @@ Plug 'jesseleite/vim-agriculture'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'prettier/vim-prettier', { 'do': 'yarn install' }
 
+Plug 'cespare/vim-toml'
 Plug 'leafgarland/typescript-vim'
 Plug 'rust-lang/rust.vim'
-Plug 'arzg/vim-rust-syntax-ext'
+" Plug 'arzg/vim-rust-syntax-ext'
 Plug 'mattn/emmet-vim'
 Plug 'xabikos/vscode-javascript'
 Plug 'andys8/vscode-jest-snippets'
@@ -72,10 +85,10 @@ let NERDTreeQuitOnOpen=1
 nmap <silent> ]E <Plug>(coc-diagnostic-next)
 nmap <silent> [E <Plug>(coc-diagnostic-prev)
 nmap <silent> <leader>l <Plug>(coc-diagnostic-info)
-nmap <silent> gd <Plug>(coc-definition)
-nmap <silent> gy <Plug>(coc-type-definition)
-nmap <silent> gi <Plug>(coc-implementation)
-nmap <silent> gr <Plug>(coc-references)
+nmap <silent> gd <Plug>(coc-definition)zz
+nmap <silent> gy <Plug>(coc-type-definition)zz
+nmap <silent> gi <Plug>(coc-implementation)zz
+nmap <silent> gr <Plug>(coc-references)zz
 
 inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
 	\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
@@ -173,7 +186,13 @@ if (match($TERM, "-256color") != -1) && (match($TERM, "screen-256color") == -1)
 endif
 " Colors
 set background=dark
-colorscheme nord
+" colorscheme nord
+" colorscheme base16-default-dark
+" colorscheme base16-nord
+colorscheme gruvbox
+" colorscheme base16-gruvbox-dark-hard
+" let base16colorspace=256
+" colorscheme base16-atelier-forest
 
 syntax enable
 " colorscheme night-owl
@@ -204,8 +223,7 @@ try
 catch
 endtry
 
-let vim_markdown_preview_toggle=1
-let vim_markdown_preview_github=1
+nmap <C-s> <Plug>MarkdownPreview
 
 command! -bang -nargs=* Rg call fzf#vim#grep("rg --column --line-number --no-heading --color=always --smart-case ".shellescape(<q-args>), 1, {'options': '--delimiter : --nth 4..'}, <bang>0)
 " Rg current word
@@ -277,3 +295,30 @@ inoremap <up> <nop>
 inoremap <down> <nop>
 inoremap <left> <nop>
 inoremap <right> <nop>
+
+" Search results centered
+nnoremap <silent> n nzz
+nnoremap <silent> N Nzz
+nnoremap <silent> * *zz
+nnoremap <silent> # #zz
+nnoremap <silent> g* g*zz
+
+" Very magic by default
+" nnoremap ? ?\v
+" nnoremap / /\v
+" cnoremap %s/ %sm/
+
+" Move by line
+nnoremap j gj
+nnoremap k gk
+nnoremap gj j 
+nnoremap gk k
+
+let g:airline#extensions#coc#enabled = 1
+
+" File list
+nnoremap <C-p> :<C-u>FZF<CR>
+
+" set shiftwidth=2
+" set tabstop=2
+" set softtabstop=2
