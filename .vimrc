@@ -27,10 +27,10 @@ Plug 'benmills/vimux'
 Plug 'machakann/vim-highlightedyank'
 Plug 'vim-airline/vim-airline'
 Plug 'kien/rainbow_parentheses.vim'
-Plug 'arcticicestudio/nord-vim'
 Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install'  }
 Plug 'chriskempson/base16-vim'
 Plug 'morhetz/gruvbox'
+Plug 'markonm/traces.vim'
 
 " Test integration
 " Plug 'janko/vim-test'
@@ -46,14 +46,23 @@ Plug 'jesseleite/vim-agriculture'
 " Language support
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'prettier/vim-prettier', { 'do': 'yarn install' }
+Plug 'sheerun/vim-polyglot'
 
 Plug 'cespare/vim-toml'
 Plug 'leafgarland/typescript-vim'
 Plug 'rust-lang/rust.vim'
+Plug 'fatih/vim-go'
+autocmd BufReadPost *.kt setlocal filetype=kotlin
+
+let g:LanguageClient_serverCommands = {
+    \ 'kotlin': ["kotlin-language-server"],
+    \ }
+
 " Plug 'arzg/vim-rust-syntax-ext'
 Plug 'mattn/emmet-vim'
 Plug 'xabikos/vscode-javascript'
 Plug 'andys8/vscode-jest-snippets'
+Plug 'nathanchapman/vscode-javascript-snippets'
 
 " Session management
 Plug 'tpope/vim-obsession'
@@ -86,6 +95,7 @@ nmap <silent> ]E <Plug>(coc-diagnostic-next)
 nmap <silent> [E <Plug>(coc-diagnostic-prev)
 nmap <silent> <leader>l <Plug>(coc-diagnostic-info)
 nmap <silent> gd <Plug>(coc-definition)zz
+nmap <silent> gD :vs<CR><Plug>(coc-definition)zz
 nmap <silent> gy <Plug>(coc-type-definition)zz
 nmap <silent> gi <Plug>(coc-implementation)zz
 nmap <silent> gr <Plug>(coc-references)zz
@@ -156,6 +166,13 @@ augroup mygroup
   " Update signature help on jump placeholder
   autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 augroup end
+
+" Scroll pop-up window
+nnoremap <nowait><expr> <C-d> coc#float#has_scroll() ? coc#float#scroll(1, 0) : "\<C-d>"
+nnoremap <nowait><expr> <C-u> coc#float#has_scroll() ? coc#float#scroll(0, 0) : "\<C-u>"
+inoremap <nowait><expr> <C-d> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(1, 0)\<cr>" : "\<Right>"
+inoremap <nowait><expr> <C-u> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(0, 0)\<cr>" : "\<Left>"
+
 
 " https://github.com/prettier/vim-prettier
 let g:prettier#autoformat = 0
@@ -281,6 +298,10 @@ noremap <leader>gb :Gbrowse <cr>
 set undodir=~/.vim/undodir
 set undofile
 
+" Open new split panes to right and bottom
+set splitbelow
+set splitright
+
 " Show autocomplete menu
 set wildmenu
 set wildmode=full
@@ -322,3 +343,35 @@ nnoremap <C-p> :<C-u>FZF<CR>
 " set shiftwidth=2
 " set tabstop=2
 " set softtabstop=2
+
+
+
+set incsearch
+" augroup vimrc-incsearch-highlight
+"   autocmd!
+"   autocmd CmdlineEnter /,\? :set hlsearch
+"   autocmd CmdlineLeave /,\? :set nohlsearch
+" augroup END
+
+let g:sneak#label = 1
+
+" :Subvert integration with for substitution preview
+let g:traces_abolish_integration = 1
+
+" fix for `gx` not opening urls properly on vim 8.2
+" https://github.com/vim/vim/issues/4738
+if has('macunix')
+  function! OpenURLUnderCursor()
+    let s:uri = matchstr(getline('.'), '[a-z]*:\/\/[^ >,;()]*')
+    let s:uri = shellescape(s:uri, 1)
+    if s:uri != ''
+      silent exec "!open '".s:uri."'"
+      :redraw!
+    endif
+  endfunction
+  nnoremap gx :call OpenURLUnderCursor()<CR>
+endif
+
+
+" let g:go_def_mapping_enabled = 0
+let g:go_doc_popup_window = 1
