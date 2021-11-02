@@ -19,6 +19,11 @@ Plug 'tpope/vim-abolish'
 Plug 'junegunn/vim-peekaboo'
 Plug 'tpope/vim-repeat'
 Plug 'tpope/vim-sleuth'
+Plug 'gioele/vim-autoswap'
+Plug 'tommcdo/vim-exchange'
+Plug 'AndrewRadev/sideways.vim'
+Plug 'b4winckler/vim-angry'
+Plug 'romainl/vim-qf'
 
 " VIM/TMUX integration
 Plug 'benmills/vimux'
@@ -28,9 +33,16 @@ Plug 'machakann/vim-highlightedyank'
 Plug 'vim-airline/vim-airline'
 Plug 'kien/rainbow_parentheses.vim'
 Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install'  }
+Plug 'tyru/open-browser.vim'
+Plug 'weirongxu/plantuml-previewer.vim'
+Plug 'xavierchow/vim-swagger-preview'
+Plug 'scrooloose/vim-slumlord'
 Plug 'chriskempson/base16-vim'
 Plug 'morhetz/gruvbox'
 Plug 'markonm/traces.vim'
+Plug 'junegunn/goyo.vim'
+Plug 'junegunn/limelight.vim'
+Plug 'jeffkreeftmeijer/vim-numbertoggle'
 
 " Test integration
 " Plug 'janko/vim-test'
@@ -51,7 +63,9 @@ Plug 'sheerun/vim-polyglot'
 Plug 'cespare/vim-toml'
 Plug 'leafgarland/typescript-vim'
 Plug 'rust-lang/rust.vim'
+Plug 'TovarishFin/vim-solidity'
 Plug 'fatih/vim-go'
+Plug 'aklt/plantuml-syntax'
 autocmd BufReadPost *.kt setlocal filetype=kotlin
 
 let g:LanguageClient_serverCommands = {
@@ -93,7 +107,7 @@ let NERDTreeQuitOnOpen=1
 " coc settings
 nmap <silent> ]E <Plug>(coc-diagnostic-next)
 nmap <silent> [E <Plug>(coc-diagnostic-prev)
-nmap <silent> <leader>l <Plug>(coc-diagnostic-info)
+" nmap <silent> <leader>l <Plug>(coc-diagnostic-info)
 nmap <silent> gd <Plug>(coc-definition)zz
 nmap <silent> gD :vs<CR><Plug>(coc-definition)zz
 nmap <silent> gy <Plug>(coc-type-definition)zz
@@ -214,18 +228,16 @@ colorscheme gruvbox
 syntax enable
 " colorscheme night-owl
 " To enable the lightline theme
-" let g:lightline = { 'colorscheme': 'nightowl' }
+" let g:lightline = { 'colorscheme': 'gruvbox' }
+
+" Color name (:help cterm-colors) or ANSI code
+let g:limelight_conceal_ctermfg = 'gray'
 
 :set number relativenumber
 
-:augroup numbertoggle
-:  autocmd!
-:  autocmd BufEnter,FocusGained,InsertLeave * set relativenumber
-:  autocmd BufLeave,FocusLost,InsertEnter   * set norelativenumber
-:augroup END
-
 " NERDTree configuration
 nmap <leader>e :NERDTreeToggle<cr>
+nmap <unique> <leader>t <Plug>GenerateDiagram 
 " nmap <Tab><Tab> :NERDTreeToggle<CR>
 " reveal the current file in NERDTree
 map <leader>f :NERDTreeFind<CR>
@@ -375,3 +387,94 @@ endif
 
 " let g:go_def_mapping_enabled = 0
 let g:go_doc_popup_window = 1
+
+" autoswap changes the current pane to the one where vim is already open.
+let g:autoswap_detect_tmux = 1
+
+nnoremap <c-h> :SidewaysLeft<cr>
+nnoremap <c-l> :SidewaysRight<cr>
+nmap <silent> [a :SidewaysJumpLeft<cr>
+nmap <silent> ]a :SidewaysJumpRight<cr>
+let g:sideways_add_item_cursor_restore = 1
+
+nmap <leader>i <Plug>SidewaysArgumentInsertBefore
+
+function! s:goyo_enter()
+  if executable('tmux') && strlen($TMUX)
+    silent !tmux set status off
+    silent !tmux list-panes -F '\#F' | grep -q Z || tmux resize-pane -Z
+  endif
+  set noshowmode
+  set noshowcmd
+  set scrolloff=999
+  Limelight
+  " ...
+endfunction
+
+function! s:goyo_leave()
+  if executable('tmux') && strlen($TMUX)
+    silent !tmux set status on
+    silent !tmux list-panes -F '\#F' | grep -q Z && tmux resize-pane -Z
+  endif
+  set showmode
+  set showcmd
+  set scrolloff=5
+  Limelight!
+  " ...
+endfunction
+
+autocmd! User GoyoEnter nested call <SID>goyo_enter()
+autocmd! User GoyoLeave nested call <SID>goyo_leave()
+
+nmap <Leader>l :Limelight!!<CR>
+nmap <Leader>L <Plug>(Limelight)
+xmap <Leader>L <Plug>(Limelight)
+
+" Create parent dirs if not existing
+autocmd BufWritePre,FileWritePre * silent! call mkdir(expand('<afile>:p:h'), 'p')
+
+" testing out dasung screen
+
+function! Dasung() " Specify a readable color scheme.
+    " Set color scheme, so that mostly things are readable
+    colorscheme delek
+    " Tune the airline color scheme (feel free to take it away).
+    AirlineTheme zenburn
+    " Keep the cursor as HD-FT has touch input
+    set guioptions+=r
+    " I got my copy of ProFontWindows, likely, from here: https://github.com/chrissimpkins/codeface/tree/master/fonts/pro-font-windows
+    " Resolution for the 13-inch Paperlike HD display is 1400 x 1050
+    set guifont=ProFontWindows:h20
+    " Note: font on Dasung is calibrated. Need to make the screen max
+    set background=light
+    " denote the current line of the cursor.
+        " set cursorline
+        " let g:airline_theme = 'zenburn'
+        hi! link airline_tabfill VertSplit
+        hi CursorLine guibg=lightblue
+    " Highlighting for search pattern
+        hi Search guifg=White guibg=black
+    " Highlighting for Folded code block
+        hi Folded guibg=LightYellow
+    " Colorization for Visual Mode
+        hi Visual  guifg=White guibg=Black gui=none
+    " Character under the cursor
+        hi Cursor  guifg=Blue guibg=lightred gui=none
+    " Sign column
+        hi SignColumn  guibg=White gui=none
+    " Sign Marker column
+        hi SignatureMarkText guifg=White guibg=LightBlue gui=none
+    " ColorColumn (as the 80 char divider)
+        hi ColorColumn ctermbg=lightred guibg=lightred
+    " Matching parameters, and vimtex matching environments.
+        hi MatchParen guibg=NONE guifg=blue gui=bold
+    " Send the Vim session to full screen.
+        " Fullscreen
+    " Undo highlights for TODO
+        hi! link Todo Comment
+    " Cursor, in a light color: avoiding the traces.
+        " highlight iCursor guifg=Black guibg=LightYellow
+        " set guicursor+=i:ver25-iCursor
+        " set guicursor+=i:blinkwait10
+endfun
+
