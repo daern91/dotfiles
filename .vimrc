@@ -60,6 +60,7 @@ Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'prettier/vim-prettier', { 'do': 'yarn install' }
 Plug 'sheerun/vim-polyglot'
 
+Plug 'darfink/vim-plist'
 Plug 'cespare/vim-toml'
 Plug 'leafgarland/typescript-vim'
 Plug 'rust-lang/rust.vim'
@@ -81,6 +82,9 @@ Plug 'nathanchapman/vscode-javascript-snippets'
 " Session management
 Plug 'tpope/vim-obsession'
 Plug 'dhruvasagar/vim-prosession'
+
+" copilot
+Plug 'github/copilot.vim'
 
 call plug#end()
 
@@ -113,6 +117,8 @@ nmap <silent> gD :vs<CR><Plug>(coc-definition)zz
 nmap <silent> gy <Plug>(coc-type-definition)zz
 nmap <silent> gi <Plug>(coc-implementation)zz
 nmap <silent> gr <Plug>(coc-references)zz
+vmap <leader>a <Plug>(coc-codeaction-selected)
+nmap <leader>a <Plug>(coc-codeaction-selected)
 
 inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
 	\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
@@ -137,27 +143,39 @@ set shortmess+=c
 " always show signcolumns
 set signcolumn=yes
 
-" Use tab for trigger completion with characters ahead and navigate.
-" Use command ':verbose imap <tab>' to make sure tab is not mapped by other plugin.
+" Use tab for trigger completion with characters ahead and navigate
+" NOTE: There's always complete item selected by default, you may want to enable
+" no select by `"suggest.noselect": true` in your configuration file
+" NOTE: Use command ':verbose imap <tab>' to make sure tab is not mapped by
+" other plugin before putting this into your config
 inoremap <silent><expr> <TAB>
-      \ pumvisible() ? "\<C-n>" :
-      \ <SID>check_back_space() ? "\<TAB>" :
+      \ coc#pum#visible() ? coc#pum#next(1) :
+      \ CheckBackspace() ? "\<Tab>" :
       \ coc#refresh()
-inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
+inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
 
-function! s:check_back_space() abort
+" Make <CR> to accept selected completion item or notify coc.nvim to format
+" <C-g>u breaks current undo, please make your own choice
+inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
+                              \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+
+function! CheckBackspace() abort
   let col = col('.') - 1
   return !col || getline('.')[col - 1]  =~# '\s'
 endfunction
 
-" Use <cr> to confirm completion, `<C-g>u` means break undo chain at current position.
-" Coc only does snippet and additional edit on confirm.
-" inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
-" Or use `complete_info` if your vim support it, like:
-inoremap <expr> <cr> complete_info()["selected"] != "-1" ? "\<C-y>" : "\<C-g>u\<CR>"
+" Use <c-space> to trigger completion
+if has('nvim')
+  inoremap <silent><expr> <c-space> coc#refresh()
+else
+  inoremap <silent><expr> <c-@> coc#refresh()
+endif
 
 " Use K to show documentation in preview window
 nnoremap <silent> K :call <SID>show_documentation()<CR>
+" Use K to show documentation in preview window
+nnoremap <leader>k :CocCommand document.toggleInlayHint<CR>
+
 
 function! s:show_documentation()
   if (index(['vim','help'], &filetype) >= 0)
@@ -237,7 +255,9 @@ let g:limelight_conceal_ctermfg = 'gray'
 
 " NERDTree configuration
 nmap <leader>e :NERDTreeToggle<cr>
-nmap <unique> <leader>t <Plug>GenerateDiagram 
+
+" Swagger preview diagram
+nmap <unique> <leader>td <Plug>GenerateDiagram 
 " nmap <Tab><Tab> :NERDTreeToggle<CR>
 " reveal the current file in NERDTree
 map <leader>f :NERDTreeFind<CR>
@@ -252,9 +272,16 @@ try
 catch
 endtry
 
-nmap <C-s> <Plug>MarkdownPreview
+nmap <C-s> <Plug>MarkdownPreviewToggle
+
+let g:mkdp_browser = 'Brave Browser'
 
 command! -bang -nargs=* Rg call fzf#vim#grep("rg --column --line-number --no-heading --color=always --smart-case ".shellescape(<q-args>), 1, {'options': '--delimiter : --nth 4..'}, <bang>0)
+" command! -bang -nargs=* GGrep
+"   \ call fzf#vim#grep(
+"   \   'git grep --line-number -- '.shellescape(<q-args>), 0,
+"   \   fzf#vim#with_preview({'dir': systemlist('git rev-parse --show-toplevel')[0]}), <bang>0)
+
 " Rg current word
 nnoremap <silent> <Leader>rg :Rg <C-R><C-W><CR>
 
@@ -299,7 +326,7 @@ noremap <leader>gs :Gstatus <cr>
 noremap <leader>gc :G commit <cr>
 noremap <leader>gp :Gpush <cr>
 noremap <leader>gd :Gdiffsplit <cr>
-noremap <leader>gb :Gbrowse <cr>
+noremap <leader>gb :GBrowse <cr>
 
 " This option creates & uses a 'default' session to be
 " used in case when launching vim and a corresponding
@@ -478,3 +505,18 @@ function! Dasung() " Specify a readable color scheme.
         " set guicursor+=i:blinkwait10
 endfun
 
+let g:rooter_patterns = ['.git', '_darcs', '.hg', '.bzr', '.svn', 'Makefile']
+
+vmap <leader>a <Plug>(coc-codeaction-selected)
+nmap <leader>a <Plug>(coc-codeaction-selected)
+
+imap <silent><script><expr> <C-J> copilot#Accept("\<CR>")
+imap <silent><script><expr> <C-]> copilot#Next()
+let g:copilot_no_tab_map = v:true
+
+" Better tab experience - from https://webdevetc.com/
+map <leader>tn :tabnew<cr>
+map <leader>t<leader> :tabnext
+map <leader>tm :tabmove
+map <leader>tc :tabclose<cr>
+map <leader>to :tabonly<cr>

@@ -1,13 +1,21 @@
-gh completion -s zsh > /usr/local/share/zsh/site-functions/_gh
+eval "$(/opt/homebrew/bin/brew shellenv)"
+eval "$(github-copilot-cli alias -- "$0")"
+
+# gh completion -s zsh > /usr/local/share/zsh/site-functions/_gh
 autoload -Uz compinit
 autoload bashcompinit && bashcompinit
 compinit -i
 
-eval $(thefuck --alias)
+# eval $(thefuck --alias)
 
+# alias rsDC='pkill Docker && open -a Docker && docker compose up'
 alias gbDA='git branch | egrep -v "(master|\*)" | xargs git branch -D'
 
 alias gck='git checkout $(git branch | fzf)'
+alias gcd='git branch -d $(git branch | fzf)'
+# alias g='git add . && git commit -m "progress" && git push origin main' 
+alias g='git add -A && git commit -m "progress" && git push &> /dev/null' 
+alias openbb='"/Applications/OpenBB Terminal/OpenBB Terminal"'
 
 ghic() {
 	gh issue close $(gh issue list -a daern91 | fzf | awk '{if ($1 !="") print $1}') 
@@ -35,6 +43,7 @@ listening() {
 
 alias tma='tmux attach -t $(tmux ls | fzf | cut -d ':' -f1)'
 alias vif='vim $(fzf --height 40%)'
+alias python='python3'
 
 if $(command -v exa > /dev/null); then 
 	alias l='exa'
@@ -53,8 +62,8 @@ else
 	# alias lll='ls -la';
 fi
 
-
-[ -f /usr/local/etc/profile.d/autojump.sh ] && . /usr/local/etc/profile.d/autojump.sh
+# [ -f /opt/homebrew/etc/profile.d/autojump.sh ] && . /opt/homebrew/etc/profile.d/autojump.sh
+eval "$(zoxide init --cmd j zsh)"
 
 bindkey -e
 export EDITOR=vim
@@ -70,6 +79,7 @@ source ~/variables.sh
 alias tf="terraform"
 alias k="kubectl"
 complete -F __start_kubectl k
+# plugins=(git git-flow brew history node npm kubectl zsh-autosuggestions)
 plugins=(git git-flow brew history node npm kubectl)
 
 alias mux='pgrep -vx tmux > /dev/null && \
@@ -81,6 +91,24 @@ alias mux='pgrep -vx tmux > /dev/null && \
 eval "$(starship init zsh)"
 export PATH="/usr/local/opt/libpq/bin:$PATH"
 
-source /usr/local/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/MacGPG2/bin:/Users/deriksson/n/bin:/Users/deriksson/.npm-global/bin:$HOME/.cargo/bin:$PATH
-export PATH=/usr/local/opt/libpq/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/MacGPG2/bin:/Users/deriksson/n/bin:/Users/deriksson/.npm-global/bin:/Users/deriksson/.cargo/bin:/usr/local/opt/libpq/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/MacGPG2/bin:/Users/deriksson/n/bin:/Users/deriksson/.npm-global/bin:/Users/deriksson/.cargo/bin:/Users/deriksson/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/MacGPG2/bin:/usr/local/opt/libpq/bin:/Users/deriksson/n/bin:/Users/deriksson/.npm-global/bin:/Users/deriksson/.cargo/bin:/Users/deriksson/.fzf/bin:/usr/local/bin
+source ${HOMEBREW_PREFIX}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+export GPG_TTY=$(tty)
+
+export PATH=/opt/homebrew/bin:$PATH
+
+export PATH="/opt/homebrew/opt/openjdk@11/bin:$PATH"
+
+export PATH="/Users/daniel/Library/Python/3.10/bin:$PATH"
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$(brew --prefix)/opt/nvm/nvm.sh" ] && \. "$(brew --prefix)/opt/nvm/nvm.sh" # This loads nvm
+[ -s "$(brew --prefix)/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$(brew --prefix)/opt/nvm/etc/bash_completion.d/nvm" # This loads nvm bash_completion
+
+# pnpm
+export PNPM_HOME="/Users/daniel/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end
