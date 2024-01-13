@@ -11,6 +11,7 @@
     ~/.vimrc: .vimrc
     ~/.zshrc: .zshrc
     ~/.config/alacritty/alacritty.yml: alacritty.yml
+    ~/.config/alacritty/alacritty.toml: alacritty.toml
     ~/variables.sh: variables.sh
 
 - create:
