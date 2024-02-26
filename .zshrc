@@ -1,5 +1,4 @@
 eval "$(/opt/homebrew/bin/brew shellenv)"
-eval "$(github-copilot-cli alias -- "$0")"
 
 # gh completion -s zsh > /usr/local/share/zsh/site-functions/_gh
 autoload -Uz compinit
@@ -47,11 +46,11 @@ alias tma='tmux attach -t $(tmux ls | fzf | cut -d ':' -f1)'
 alias vif='vim $(fzf --height 40%)'
 alias python='python3'
 
-if $(command -v exa > /dev/null); then 
-	alias l='exa'
-	alias ls='exa'
-	alias ll='exa -l'
-	alias lll='exa -la'
+if $(command -v eza > /dev/null); then 
+	alias l='eza'
+	alias ls='eza'
+	alias ll='eza -l'
+	alias lll='eza -la'
 else 
 	alias l='ls'
 	alias ll='ls -l'
@@ -114,3 +113,10 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+eval "$(github-copilot-cli alias -- "$0")"
