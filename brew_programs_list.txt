@@ -227,9 +227,6 @@ yajl
 ykman
 youtube-dl
 yq
-zeromq
-zimg
-zld
 zoxide
 zsh-autosuggestions
 zstd

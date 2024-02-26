@@ -1,14 +1,25 @@
-[user]
-	name = daern91
-	email = daniel_eriksson_8@hotmail.com
-[push]
-	default = current
 [alias]
-	hist = log --all --graph --decorate --oneline
-	tagsbydate = log --tags --simplify-by-decoration --pretty=\"format:%ai %d\"
 	m = checkout master
 	b = branch
+	s = status
+	set-upstream = !git branch --set-upstream-to=origin/$(git symbolic-ref --short HEAD)
 [sequence]
 	editor = vi
 [core]
-	editor = vim
+	editor = vi
+[pull]
+	rebase = false
+[user]
+	name = Daniel Eriksson
+	email = daern91@gmail.com
+[push]
+	default = current
+	autoSetupRemote = true
+[credential]
+	helper = manager-core
+[credential "https://github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential

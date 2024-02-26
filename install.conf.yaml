@@ -8,6 +8,7 @@
     ~/.dotfiles: ''
     ~/.tmux.conf: .tmux.conf
     ~/.vim: .vim
+    ~/.gitconfig: .gitconfig
     ~/.vimrc: .vimrc
     ~/.zshrc: .zshrc
     ~/.config/alacritty/alacritty.yml: alacritty.yml
