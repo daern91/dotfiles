@@ -67,3 +67,6 @@ mods = "Command"
 action = "ToggleFullscreen"
 key = "Return"
 mods = "Command"
+
+[window] 
+option_as_alt = "Both"
