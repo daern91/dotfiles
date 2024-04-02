@@ -10,14 +10,26 @@ alias gpg-upload-keys='gpg --send-key $KEYID && gpg --keyserver keys.gnupg.net -
 alias gpg-change-card='gpg-connect-agent "scd serialno" "learn --force" /bye'
 
 # alias rsDC='pkill Docker && open -a Docker && docker compose up'
-alias gbDA='git branch | egrep -v "(master|\*)" | xargs git branch -D'
+alias gb='git b'
+alias gm='git m'
+alias gs='git s'
+alias gp='git p'
+alias gd='git d'
+alias gbDA='gb | egrep -v "(master|\*)" | xargs git branch -D'
 
-alias gck='git checkout $(git branch | fzf)'
-alias gcd='git branch -d $(git branch | fzf)'
-# alias g='git add . && git commit -m "progress" && git push origin main' 
-alias g='git add -A && git commit -m "progress" && git push &> /dev/null' 
+alias gck='git checkout $(gb | fzf)'
+alias gbd='gb -d $(gb | fzf)'
+
+alias g='git add -A && git commit -m "progress" && gp &> /dev/null'
 alias openbb='"/Applications/OpenBB Terminal/OpenBB Terminal"'
+alias gha='gh search prs --state=open --review-requested=@me'
+alias ghp='gh search prs --state=open --author=@me'
 
+ghpv() {
+	vals=($(ghp | fzf | awk '{if ($1 !="") print $1; if ($2 !="") print $2};'))
+	echo "gh pr view ${vals[2]} -R ${vals[1]}\n"
+	gh pr view ${vals[2]} -R ${vals[1]}
+}
 ghic() {
 	gh issue close $(gh issue list -a daern91 | fzf | awk '{if ($1 !="") print $1}') 
 }
