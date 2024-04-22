@@ -1,6 +1,6 @@
 [alias]
 	; m = checkout master
-  m = "!f() { git checkout master 2>/dev/null || git checkout main; }; f"
+	m = "!f() { git checkout master 2>/dev/null || git checkout main; }; f"
 	p = push
 	b = branch
 	s = status
