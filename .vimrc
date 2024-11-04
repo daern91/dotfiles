@@ -9,6 +9,7 @@ call plug#begin('~/.vim/plugged')
 " VIM enhancements
 Plug 'ciaranm/securemodelines'
 Plug 'scrooloose/nerdtree'
+Plug 'PhilRunninger/nerdtree-visual-selection'
 Plug 'justinmk/vim-sneak'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-rhubarb'
@@ -63,6 +64,7 @@ Plug 'sheerun/vim-polyglot'
 Plug 'darfink/vim-plist'
 Plug 'cespare/vim-toml'
 Plug 'leafgarland/typescript-vim'
+" Plug 'Quramy/tsuquyomi'
 Plug 'rust-lang/rust.vim'
 Plug 'TovarishFin/vim-solidity'
 Plug 'fatih/vim-go'
@@ -175,6 +177,21 @@ endif
 nnoremap <silent> K :call <SID>show_documentation()<CR>
 " Use K to show documentation in preview window
 nnoremap <leader>k :CocCommand document.toggleInlayHint<CR>
+" nnoremap <leader>ky :CocActionAsync('highlight')<CR>
+
+nnoremap <silent> <leader>ky :call StatusDiagnosticToClipboard()<CR>
+function! StatusDiagnosticToClipboard()
+  call setreg('+','')
+  let diagList=CocAction('diagnosticList')
+  let line=line('.')
+  for diagItem in diagList
+    if line == diagItem['lnum']
+      let str=diagItem['message']
+      call setreg('+',str)
+      return
+    endif
+  endfor
+endfunction
 
 
 function! s:show_documentation()
@@ -205,6 +222,11 @@ nnoremap <nowait><expr> <C-u> coc#float#has_scroll() ? coc#float#scroll(0, 0) : 
 inoremap <nowait><expr> <C-d> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(1, 0)\<cr>" : "\<Right>"
 inoremap <nowait><expr> <C-u> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(0, 0)\<cr>" : "\<Left>"
 
+command! FmtTImports call CocAction('runCommand', 'editor.action.organizeImport')
+nnoremap <silent> <Leader>rg :Rg <C-R><C-W><CR>
+" nnoremap <silent> <Leader>xx :let output=system("Rg --stats \"id: '<C-R><C-W>'\" | tail -n 8 | head -n 1") | exe "normal! A (" . output . ")"
+" nnoremap <silent> <Leader>xx  | tail -n 8 | head -n 1") | exe "normal! A (" . output . ")"
+command! RgW silent! call "let output=system("Rg --stats \"id: 'ACCOUNT'\""
 
 " https://github.com/prettier/vim-prettier
 let g:prettier#autoformat = 0
@@ -274,7 +296,13 @@ endtry
 
 nmap <C-s> <Plug>MarkdownPreviewToggle
 
-let g:mkdp_browser = 'Brave Browser'
+  function OpenMarkdownPreview (url)
+    execute "silent ! open -a Google\\ Chrome -n --args --new-window " . a:url
+  endfunction
+  let g:mkdp_browserfunc = 'OpenMarkdownPreview'
+
+" let g:mkdp_browser = 'Brave Browser'
+let g:mkdp_browser = 'Google\ Chrome'
 
 command! -bang -nargs=* Rg call fzf#vim#grep("rg --column --line-number --no-heading --color=always --smart-case ".shellescape(<q-args>), 1, {'options': '--delimiter : --nth 4..'}, <bang>0)
 " command! -bang -nargs=* GGrep
@@ -283,7 +311,7 @@ command! -bang -nargs=* Rg call fzf#vim#grep("rg --column --line-number --no-hea
 "   \   fzf#vim#with_preview({'dir': systemlist('git rev-parse --show-toplevel')[0]}), <bang>0)
 
 " Rg current word
-nnoremap <silent> <Leader>rg :Rg <C-R><C-W><CR>
+nnoremap <silent> <Leader>ea :CocCommand editor.action
 
 " File list
 nnoremap <C-p> :<C-u>FZF<CR>
@@ -347,6 +375,7 @@ set wildmode=full
 
 " Keep only current buffer, necessary when doing long sessions
 command! Bonly silent! execute "%bd|e#|bd#"
+map <leader>bo :Bonly<cr>
 
 " No arrow keys, force yourself to use the home row
 nnoremap <up> <nop>
@@ -452,10 +481,12 @@ endfunction
 
 autocmd! User GoyoEnter nested call <SID>goyo_enter()
 autocmd! User GoyoLeave nested call <SID>goyo_leave()
+let g:goyo_width = 80
 
 nmap <Leader>l :Limelight!!<CR>
 nmap <Leader>L <Plug>(Limelight)
 xmap <Leader>L <Plug>(Limelight)
+nmap <Leader>G :Goyo<cr>
 
 " Create parent dirs if not existing
 autocmd BufWritePre,FileWritePre * silent! call mkdir(expand('<afile>:p:h'), 'p')
@@ -516,7 +547,59 @@ let g:copilot_no_tab_map = v:true
 
 " Better tab experience - from https://webdevetc.com/
 map <leader>tn :tabnew<cr>
-map <leader>t<leader> :tabnext
+map <leader>tt :tabnext
 map <leader>tm :tabmove
 map <leader>tc :tabclose<cr>
 map <leader>to :tabonly<cr>
+
+let g:VimuxOrientation = "h"
+let g:VimuxHeight = "30"
+
+
+" console.log current word
+nnoremap <Leader>L "ayiwOconsole.log('<C-R>a :>> ', <C-R>a);<Esc>
+xnoremap <Leader>L "ayOconsole.log('<C-R>a :>> ', <C-R>a);<Esc>
+
+" test below
+" Gets the root of the Git repo or submodule, relative to the current buffer
+function! GetGitRoot()
+  return systemlist('git -C ' . shellescape(expand('%:p:h')) . ' rev-parse --show-toplevel')[0]
+endfunction
+
+" RgIn: Start ripgrep in the specified directory
+"
+" Usage
+"   :RgIn start_dir search_term
+"
+" If the command was called with a bang ("RgIn!"), make the search window
+" fullscreen
+function! s:rg_in(showFullscreen, ...)
+  let l:start_dir=expand(a:1)
+
+  if !isdirectory(l:start_dir)
+    throw 'not a valid directory: ' .. l:start_dir
+  endif
+
+  " a:000 contains the argument list → Join the arguments after the first one
+  let l:pattern=(join(a:000[1:], ' '))
+
+  let l:rg_cmd = "rg --color=always --line-number --no-heading --smart-case " .. shellescape(l:pattern)
+  let l:has_column = 0
+  call fzf#vim#grep(l:rg_cmd, l:has_column, {'dir': l:start_dir}, a:showFullscreen)
+
+endfunction
+
+" See this: https://vi.stackexchange.com/questions/13965/what-is-command-bang-nargs-in-a-vimrc-file
+" -bang: The command can also be called as "RgIn!" to make the search window fullscreen
+" <bang>0: If there is no bang, pass 0 to the function, otherwise 1
+command! -bang -nargs=+ -complete=dir RgIn call s:rg_in(<bang>0, <f-args>)
+
+
+" Search content from the root of the current Git repo
+nmap <leader>o :RgIn `=GetGitRoot()`<cr>
+" Search in a specified directory
+nmap <leader>d :RgIn ~/docs<cr>
+" Search current word in Git repo. Adapted from here: https://news.ycombinator.com/item?id=26634419#26635204
+nnoremap <C-Space> yiw:RgIn `=GetGitRoot()` <C-r>"<cr>
+" Search current selection in Git repo
+vnoremap <C-Space> y:RgIn `=GetGitRoot()` <C-r>"<cr>
