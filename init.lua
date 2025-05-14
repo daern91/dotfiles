@@ -519,18 +519,18 @@ require("lazy").setup({
 		},
 		keys = {
 			{
-				"<leader>f",
+				"<leader>y",
 				mode = { "n", "v" },
 				"<cmd>Yazi<cr>",
 				desc = "Open yazi at the current file",
 			},
 			{
-				"<leader>e",
+				"<leader>Y",
 				"<cmd>Yazi cwd<cr>",
 				desc = "Open the file manager in nvim's working directory",
 			},
 			{
-				"<leader>ft",
+				"<leader>yt",
 				"<cmd>Yazi toggle<cr>",
 				desc = "Resume the last yazi session",
 			},
