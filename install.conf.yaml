@@ -12,6 +12,7 @@
     ~/.vimrc: .vimrc
     ~/.zshrc: .zshrc
     ~/.config/alacritty/alacritty.toml: alacritty.toml
+    ~/.config/nvim/init.lua: init.lua
     ~/variables.sh: variables.sh
 
 - create:

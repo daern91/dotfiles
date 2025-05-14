@@ -54,6 +54,15 @@ listening() {
     fi
 }
 
+function y() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	yazi "$@" --cwd-file="$tmp"
+	if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+		builtin cd -- "$cwd"
+	fi
+	rm -f -- "$tmp"
+}
+
 alias tma='tmux attach -t $(tmux ls | fzf | cut -d ':' -f1)'
 alias vif='vim $(fzf --height 40%)'
 alias python='python3'
@@ -132,3 +141,5 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 eval "$(github-copilot-cli alias -- "$0")"
+
+. "$HOME/.local/bin/env"
