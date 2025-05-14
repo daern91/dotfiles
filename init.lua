@@ -243,6 +243,24 @@ vim.opt.rtp:prepend(lazypath)
 -- then, setup!
 ---@type LazySpec[]
 require("lazy").setup({
+	-- Session management (like in vimrc)
+	{
+		'tpope/vim-obsession',
+		lazy = false,
+	},
+	{
+		'dhruvasagar/vim-prosession',
+		lazy = false,
+		dependencies = {
+			'tpope/vim-obsession',
+		},
+		config = function()
+			-- Create & use a 'default' session when no matching session is found
+			vim.g.prosession_default_session = 1
+			-- Set the directory where sessions are stored
+			vim.g.prosession_dir = vim.fn.expand('~/.vim/session/')
+		end,
+	},
 	-- main color scheme
 	{
 	  "RRethy/base16-nvim",   -- ← correct GitHub path
@@ -657,3 +675,10 @@ require("lazy").setup({
 -- other stuff below
 --
 -------------------------------------------------------------------------------
+
+-- Session management commands from vimrc
+vim.api.nvim_create_user_command('Bonly', 
+  'silent! execute "%bd|e#|bd#"', 
+  { desc = 'Close all buffers except current one' }
+)
+vim.keymap.set('n', '<leader>bo', ':Bonly<cr>', { desc = 'Close all buffers except current one' })
