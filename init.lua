@@ -46,11 +46,11 @@ vim.opt.undofile = true
 -- -- when opening a file with a command (like :e),
 -- -- don't suggest files like there:
 -- vim.opt.wildignore = '.hg,.svn,*~,*.png,*.jpg,*.gif,*.min.js,*.swp,*.o,vendor,dist,_site'
--- -- tabs: go big or go home
--- vim.opt.shiftwidth = 8
--- vim.opt.softtabstop = 8
--- vim.opt.tabstop = 8
--- vim.opt.expandtab = false
+-- tabs: use same settings as vimrc
+vim.opt.shiftwidth = 2
+vim.opt.softtabstop = 2
+vim.opt.tabstop = 2
+vim.opt.expandtab = true
 -- -- case-insensitive search/replace
 -- vim.opt.ignorecase = true
 -- -- unless uppercase in search term
@@ -568,6 +568,11 @@ require("lazy").setup({
 			vim.g.loaded_netrwPlugin = 1
 		end,
 	},
+	-- Add vim-sleuth for automatic indentation detection
+	{
+		'tpope/vim-sleuth',
+		lazy = false,
+	},
 	-- language support
 	-- terraform
 	{
@@ -682,3 +687,6 @@ vim.api.nvim_create_user_command('Bonly',
   { desc = 'Close all buffers except current one' }
 )
 vim.keymap.set('n', '<leader>bo', ':Bonly<cr>', { desc = 'Close all buffers except current one' })
+
+-- Add sleuth for automatic indentation detection (like in vimrc)
+-- This will help maintain consistent spacing across vim and neovim
