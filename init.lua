@@ -85,7 +85,7 @@ vim.keymap.set('', '<C-p>', '<cmd>Files<cr>')
 vim.keymap.set('n', '<leader>;', '<cmd>Buffers<cr>')
 -- fuzzy search in files
 vim.keymap.set('n', '<leader>s', '<cmd>FzfLua live_grep<cr>')
--- quick-save
+-- quick-save (formatting will happen automatically via BufWritePre autocmd)
 vim.keymap.set('n', '<leader>w', '<cmd>w<cr>')
 -- -- make missing : less annoying
 -- vim.keymap.set('n', ';', ':')
@@ -442,6 +442,8 @@ require("lazy").setup({
 				lspconfig.bash_lsp.setup {}
 			end
 
+			-- TypeScript/JavaScript will be handled by typescript-tools.nvim plugin below
+
 			-- Global mappings.
 			-- See `:help vim.diagnostic.*` for documentation on any of the below functions
 			vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float)
@@ -462,7 +464,28 @@ require("lazy").setup({
 					local opts = { buffer = ev.buf }
 					vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
 					vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-					vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+					-- Enhanced hover functionality
+					vim.keymap.set('n', 'K', function()
+						-- First try LSP hover
+						local hover_available = false
+						for _, client in pairs(vim.lsp.get_clients({bufnr = 0})) do
+							if client.server_capabilities.hoverProvider then
+								hover_available = true
+								break
+							end
+						end
+						
+						if hover_available then
+							vim.lsp.buf.hover()
+						else
+							-- Fallback to default Vim help or show a message
+							local word = vim.fn.expand('<cword>')
+							print('LSP hover not available for: ' .. word)
+							-- Try Vim's built-in help as fallback
+							vim.cmd('help ' .. word)
+						end
+					end, opts)
+					
 					vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
 					vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
 					vim.keymap.set('n', '<leader>wa', vim.lsp.buf.add_workspace_folder, opts)
@@ -470,13 +493,25 @@ require("lazy").setup({
 					vim.keymap.set('n', '<leader>wl', function()
 						print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
 					end, opts)
+					
+					-- Debug LSP info
+					vim.keymap.set('n', '<leader>li', function()
+						local clients = vim.lsp.get_clients({bufnr = 0})
+						if #clients == 0 then
+							print('No LSP clients attached to this buffer')
+						else
+							for _, client in pairs(clients) do
+								print('LSP Client: ' .. client.name)
+								print('  - Hover support: ' .. tostring(client.server_capabilities.hoverProvider or false))
+								print('  - Definition support: ' .. tostring(client.server_capabilities.definitionProvider or false))
+							end
+						end
+					end, opts)
 					--vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, opts)
 					vim.keymap.set('n', '<leader>r', vim.lsp.buf.rename, opts)
 					vim.keymap.set({ 'n', 'v' }, '<leader>a', vim.lsp.buf.code_action, opts)
 					vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
-					vim.keymap.set('n', '<leader>f', function()
-						vim.lsp.buf.format { async = true }
-					end, opts)
+					-- Formatting is handled by conform.nvim, not LSP directly
 
 					local client = vim.lsp.get_client_by_id(ev.data.client_id)
 
@@ -492,6 +527,129 @@ require("lazy").setup({
 				end,
 			})
 		end
+	},
+	-- TypeScript/JavaScript enhanced LSP
+	{
+		"pmizio/typescript-tools.nvim",
+		dependencies = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" },
+		ft = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
+		config = function()
+			require("typescript-tools").setup {
+				-- Enhanced settings for better hover and functionality
+				settings = {
+					-- spawn additional tsserver instance to calculate diagnostics on it
+					separate_diagnostic_server = true,
+					-- "change"|"insert_leave" determine when the client asks the server about diagnostic
+					publish_diagnostic_on = "insert_leave",
+					-- array of strings("fix_all"|"add_missing_imports"|"remove_unused"|
+					-- "remove_unused_imports"|"organize_imports") -- or string "all"
+					-- to include all supported code actions
+					-- specify commands exposed as code_actions
+					expose_as_code_action = {},
+					-- string|nil - specify a custom path to `tsserver.js` file, if this is nil or file under path
+					-- not exists then standard path resolution strategy is applied
+					tsserver_path = nil,
+					-- specify a list of plugins to load by tsserver, e.g., for support `styled-components`
+					-- (see 💅 `styled-components` support section)
+					tsserver_plugins = {},
+					-- this value is passed to: https://nodejs.org/api/cli.html#--max-old-space-sizesize-in-megabytes
+					-- memory limit in megabytes or "auto"(basically no limit)
+					tsserver_max_memory = "auto",
+					-- described below
+					tsserver_format_options = {},
+					tsserver_file_preferences = {
+						-- Inlay hints
+						includeInlayParameterNameHints = "all",
+						includeInlayParameterNameHintsWhenArgumentMatchesName = false,
+						includeInlayFunctionParameterTypeHints = true,
+						includeInlayVariableTypeHints = true,
+						includeInlayPropertyDeclarationTypeHints = true,
+						includeInlayFunctionLikeReturnTypeHints = true,
+						includeInlayEnumMemberValueHints = true,
+					},
+					-- locale of all tsserver messages, supported locales you can find here:
+					-- https://github.com/microsoft/TypeScript/blob/3c221fc086be52b19801f6e8d82596d04607ede6/src/compiler/utilitiesPublic.ts#L620
+					tsserver_locale = "en",
+					-- mirror of VSCode's `typescript.suggest.completeFunctionCalls`
+					complete_function_calls = false,
+					include_completions_with_insert_text = true,
+					-- CodeLens
+					-- WARNING: Experimental feature also in VSCode, because it might hit performance of server.
+					-- possible values: ("off"|"all"|"implementations_only"|"references_only")
+					code_lens = "off",
+					-- by default code lenses are displayed on all referencable values and for some of you it can
+					-- be too much this option reduce count of them by removing member references from lenses
+					disable_member_code_lens = true,
+					-- JSXCloseTag
+					-- WARNING: it is disabled by default (maybe you configuration or distro already uses nvim-ts-autotag,
+					-- that maybe have a conflict if enable this feature. )
+					jsx_close_tag = {
+						enable = false,
+						filetypes = { "javascriptreact", "typescriptreact" },
+					}
+				},
+			}
+		end,
+	},
+	-- Code formatting with prettier and other formatters
+	{
+		"stevearc/conform.nvim",
+		event = { "BufWritePre" },
+		cmd = { "ConformInfo" },
+		keys = {
+			{
+				"<leader>F",
+				function()
+					require("conform").format({ async = true })
+				end,
+				mode = "",
+				desc = "Format buffer",
+			},
+		},
+		config = function()
+			require("conform").setup({
+				-- Map of filetype to formatters (using faster alternatives where possible)
+				formatters_by_ft = {
+					javascript = { "prettierd", "prettier", stop_after_first = true },
+					typescript = { "prettierd", "prettier", stop_after_first = true },
+					javascriptreact = { "prettierd", "prettier", stop_after_first = true },
+					typescriptreact = { "prettierd", "prettier", stop_after_first = true },
+					vue = { "prettierd", "prettier", stop_after_first = true },
+					css = { "prettierd", "prettier", stop_after_first = true },
+					scss = { "prettierd", "prettier", stop_after_first = true },
+					less = { "prettierd", "prettier", stop_after_first = true },
+					html = { "prettierd", "prettier", stop_after_first = true },
+					json = { "prettierd", "prettier", stop_after_first = true },
+					jsonc = { "prettierd", "prettier", stop_after_first = true },
+					yaml = { "prettierd", "prettier", stop_after_first = true },
+					markdown = { "prettierd", "prettier", stop_after_first = true },
+					graphql = { "prettierd", "prettier", stop_after_first = true },
+					handlebars = { "prettierd", "prettier", stop_after_first = true },
+					-- Add other formatters as needed
+					lua = { "stylua" },
+					rust = { "rustfmt" },
+					-- Use a sub-list to run multiple formatters
+					-- python = { "isort", "black" },
+				},
+				-- Set up format-on-save
+				format_on_save = function(bufnr)
+					-- Disable with a global or buffer-local variable
+					if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
+						return
+					end
+					return { timeout_ms = 2000, lsp_fallback = true }
+				end,
+				-- Customize formatters
+				formatters = {
+					prettier = {
+						-- You can customize the base config if you need to
+						prepend_args = function(self, ctx)
+							return { "--stdin-filepath", "$FILENAME" }
+						end,
+					},
+				},
+			})
+		end,
 	},
 	-- LSP-based code-completion
 	{
