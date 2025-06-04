@@ -83,6 +83,8 @@ vim.opt.expandtab = true
 vim.keymap.set('', '<C-p>', '<cmd>Files<cr>')
 -- search buffers
 vim.keymap.set('n', '<leader>;', '<cmd>Buffers<cr>')
+-- fuzzy search in files
+vim.keymap.set('n', '<leader>s', '<cmd>FzfLua live_grep<cr>')
 -- quick-save
 vim.keymap.set('n', '<leader>w', '<cmd>w<cr>')
 -- -- make missing : less annoying
@@ -133,9 +135,9 @@ vim.keymap.set('n', '*', '*zz', { silent = true })
 vim.keymap.set('n', '#', '#zz', { silent = true })
 vim.keymap.set('n', 'g*', 'g*zz', { silent = true })
 -- "very magic" (less escaping needed) regexes by default
-vim.keymap.set('n', '?', '?\\v')
-vim.keymap.set('n', '/', '/\\v')
-vim.keymap.set('c', '%s/', '%sm/')
+-- vim.keymap.set('n', '?', '?\\v')
+-- vim.keymap.set('n', '/', '/\\v')
+-- vim.keymap.set('c', '%s/', '%sm/')
 -- -- open new file adjacent to current file
 -- vim.keymap.set('n', '<leader>o', ':e <C-R>=expand("%:p:h") . "/" <cr>')
 -- no arrow keys --- force yourself to use the home row
@@ -335,33 +337,60 @@ require("lazy").setup({
 			require('nvim-rooter').setup()
 		end
 	},
-	-- fzf support for ^p
+	-- fzf-lua for fuzzy finding
 	{
-		'junegunn/fzf.vim',
-		dependencies = {
-			{ 'junegunn/fzf', dir = '~/.fzf', build = './install --all' },
-		},
+		'ibhagwan/fzf-lua',
+		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
-			-- stop putting a giant window over my editor
-			vim.g.fzf_layout = { down = '~20%' }
-			-- when using :Files, pass the file list through
-			--
-			--   https://github.com/jonhoo/proximity-sort
-			--
-			-- to prefer files closer to the current file.
-			function list_cmd()
-				local base = vim.fn.fnamemodify(vim.fn.expand('%'), ':h:.:S')
-				if base == '.' then
-					-- if there is no current file,
-					-- proximity-sort can't do its thing
-					return 'fd --type file --follow'
-				else
-					return vim.fn.printf('fd --type file --follow | proximity-sort %s', vim.fn.shellescape(vim.fn.expand('%')))
+			local fzf_lua = require('fzf-lua')
+			fzf_lua.setup({
+				winopts = {
+					height = 0.40,
+					width = 1.0,
+					row = 1.0,
+					border = 'none',
+				},
+				fzf_opts = {
+					['--layout'] = 'reverse',
+					['--info'] = 'inline',
+				},
+				files = {
+					-- Use fd as default, proximity-sort will be handled in the Files command
+					cmd = 'fd --type file --follow',
+					fzf_opts = {
+						['--tiebreak'] = 'index',
+					},
+				},
+			})
+			
+			-- Create Files command for compatibility
+			vim.api.nvim_create_user_command('Files', function(opts)
+				local function get_files_cmd()
+					local base = vim.fn.fnamemodify(vim.fn.expand('%'), ':h:.:S')
+					-- Check if proximity-sort is available
+					if base ~= '.' and vim.fn.executable('proximity-sort') == 1 then
+						return vim.fn.printf('fd --type file --follow | proximity-sort %s', vim.fn.shellescape(vim.fn.expand('%')))
+					else
+						return 'fd --type file --follow'
+					end
 				end
-			end
-			vim.api.nvim_create_user_command('Files', function(arg)
-				vim.fn['fzf#vim#files'](arg.qargs, { source = list_cmd(), options = '--tiebreak=index' }, arg.bang)
-			end, { bang = true, nargs = '?', complete = "dir" })
+				
+				if opts.args and opts.args ~= "" then
+					fzf_lua.files({ 
+						cwd = opts.args,
+						cmd = get_files_cmd()
+					})
+				else
+					fzf_lua.files({
+						cmd = get_files_cmd()
+					})
+				end
+			end, { nargs = '?', complete = "dir" })
+			
+			-- Create Buffers command for compatibility
+			vim.api.nvim_create_user_command('Buffers', function()
+				fzf_lua.buffers()
+			end, {})
 		end
 	},
 	-- LSP
@@ -626,15 +655,19 @@ require("lazy").setup({
 		version = false, -- set this if you want to always pull the latest change
 		opts = {
 		    provider = "vertex_claude",
-		    vertex_claude = {
+		    providers = {
+		      vertex_claude = {
 		      endpoint =
 			"https://LOCATION-aiplatform.googleapis.com/v1/projects/PROJECT_ID/locations/LOCATION/publishers/anthropic/models",
 		      -- model = "claude-3-7-sonnet@20250219",
 		      model = "claude-sonnet-4@20250514",
 		      timeout     = 30000,
-		      temperature = 0,
-		      max_tokens  = 4096,
+		        extra_request_body = {
+		          temperature = 0,
+		          max_tokens = 4096,
+		        },
 		      -- api_key_name = "cmd:echo $VERTEX_TOKEN" -- uncomment if you don’t want to rely on gcloud ADC
+		      },
 		    },
 		},
 		-- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
