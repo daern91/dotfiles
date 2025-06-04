@@ -8,6 +8,7 @@ compinit -i
 # gpg-shortcuts
 alias gpg-upload-keys='gpg --send-key $KEYID && gpg --keyserver keys.gnupg.net --send-key $KEYID && gpg --keyserver hkps://keyserver.ubuntu.com:443 --send-key $KEYID'
 alias gpg-change-card='gpg-connect-agent "scd serialno" "learn --force" /bye'
+alias claude="$HOME/.claude/local/claude"
 
 # alias rsDC='pkill Docker && open -a Docker && docker compose up'
 alias gb='git b'

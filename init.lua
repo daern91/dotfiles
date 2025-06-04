@@ -629,7 +629,8 @@ require("lazy").setup({
 		    vertex_claude = {
 		      endpoint =
 			"https://LOCATION-aiplatform.googleapis.com/v1/projects/PROJECT_ID/locations/LOCATION/publishers/anthropic/models",
-		      model = "claude-3-7-sonnet@20250219",
+		      -- model = "claude-3-7-sonnet@20250219",
+		      model = "claude-sonnet-4@20250514",
 		      timeout     = 30000,
 		      temperature = 0,
 		      max_tokens  = 4096,
