@@ -85,10 +85,25 @@ vim.keymap.set("", "<C-p>", "<cmd>Files<cr>")
 vim.keymap.set("n", "<leader>;", "<cmd>Buffers<cr>")
 -- fuzzy search in files
 vim.keymap.set("n", "<leader>s", "<cmd>FzfLua live_grep<cr>")
+-- search exact word under cursor
+vim.keymap.set("n", "<leader>rg", function()
+	local word = vim.fn.expand("<cword>")
+	if word ~= "" then
+		-- Use ripgrep's word boundary flag for exact matches
+		require("fzf-lua").live_grep({ 
+			search = word,
+			rg_opts = "--word-regexp"
+		})
+	else
+		print("No word under cursor")
+	end
+end)
 -- quick-save (formatting will happen automatically via BufWritePre autocmd)
 vim.keymap.set("n", "<leader>w", "<cmd>w<cr>")
 -- save without formatting
 vim.keymap.set("n", "<leader>W", "<cmd>noautocmd w<cr>")
+-- save all without formatting
+vim.keymap.set("n", "<leader>Wa", "<cmd>noautocmd wa<cr>")
 -- -- make missing : less annoying
 -- vim.keymap.set('n', ';', ':')
 -- -- Ctrl+j and Ctrl+k as Esc
@@ -905,6 +920,11 @@ vim.api.nvim_create_user_command(
 	{ desc = "Close all buffers except current one" }
 )
 vim.keymap.set("n", "<leader>bo", ":Bonly<cr>", { desc = "Close all buffers except current one" })
+
+-- Commands for saving without formatting
+vim.api.nvim_create_user_command("WriteAllNoFormat", "noautocmd wa", { desc = "Write all files without formatting" })
+vim.api.nvim_create_user_command("ExitAllNoFormat", "noautocmd xa", { desc = "Write all files and exit without formatting" })
+vim.api.nvim_create_user_command("QuitAllNoFormat", "noautocmd qa!", { desc = "Quit all without saving or formatting" })
 
 -- Add sleuth for automatic indentation detection (like in vimrc)
 -- This will help maintain consistent spacing across vim and neovim
