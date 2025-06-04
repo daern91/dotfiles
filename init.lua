@@ -562,7 +562,8 @@ require("lazy").setup({
 		"mikavilpas/yazi.nvim",
 		event = "VeryLazy",
 		dependencies = {
-			"folke/snacks.nvim"
+			"folke/snacks.nvim",
+			"ibhagwan/fzf-lua"
 		},
 		keys = {
 			{
@@ -588,6 +589,24 @@ require("lazy").setup({
 			open_for_directories = false,
 			keymaps = {
 				show_help = "?",  -- Change to question mark which is more intuitive for help
+			},
+			integrations = {
+				grep_in_directory = function(directory)
+					require("fzf-lua").live_grep({
+						cwd = directory,
+						prompt = "Grep in " .. vim.fn.fnamemodify(directory, ":t") .. "> ",
+					})
+				end,
+				grep_in_selected_files = function(selected_files)
+					require("fzf-lua").live_grep({
+						file_ignore_patterns = {},
+						fzf_opts = {
+							["--query"] = "",
+						},
+						-- Convert file list to grep command
+						cmd = "rg --column --line-number --no-heading --color=always --smart-case -- '' " .. table.concat(selected_files, " "),
+					})
+				end,
 			},
 		},
 		-- 👇 if you use `open_for_directories=true`, this is recommended
