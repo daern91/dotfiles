@@ -492,8 +492,19 @@ require("lazy").setup({
 					-- Buffer local mappings.
 					-- See `:help vim.lsp.*` for documentation on any of the below functions
 					local opts = { buffer = ev.buf }
-					vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
-					vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+					vim.keymap.set("n", "gD", function()
+						vim.cmd("vsplit")
+						vim.lsp.buf.definition()
+						vim.cmd("normal! zz")
+					end, opts)
+					vim.keymap.set("n", "gd", function()
+						vim.lsp.buf.definition()
+						vim.cmd("normal! zz")
+					end, opts)
+					vim.keymap.set("n", "gy", function()
+						vim.lsp.buf.type_definition()
+						vim.cmd("normal! zz")
+					end, opts)
 					-- Enhanced hover functionality with better scrolling
 					vim.keymap.set("n", "K", function()
 						-- First try LSP hover
@@ -517,7 +528,10 @@ require("lazy").setup({
 						end
 					end, opts)
 
-					vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
+					vim.keymap.set("n", "gi", function()
+						vim.lsp.buf.implementation()
+						vim.cmd("normal! zz")
+					end, opts)
 					vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)
 					vim.keymap.set("n", "<leader>wa", vim.lsp.buf.add_workspace_folder, opts)
 					vim.keymap.set("n", "<leader>wr", vim.lsp.buf.remove_workspace_folder, opts)
@@ -544,9 +558,12 @@ require("lazy").setup({
 						end
 					end, opts)
 					--vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, opts)
-					vim.keymap.set("n", "<leader>r", vim.lsp.buf.rename, opts)
+					vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
 					vim.keymap.set({ "n", "v" }, "<leader>a", vim.lsp.buf.code_action, opts)
-					vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
+					vim.keymap.set("n", "gr", function()
+						vim.lsp.buf.references()
+						vim.cmd("normal! zz")
+					end, opts)
 					-- Formatting is handled by conform.nvim, not LSP directly
 
 					local client = vim.lsp.get_client_by_id(ev.data.client_id)
