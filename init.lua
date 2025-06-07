@@ -172,6 +172,19 @@ vim.keymap.set("i", "<right>", "<nop>")
 -- F1 is pretty close to Esc, so you probably meant Esc
 vim.keymap.set("", "<F1>", "<Esc>")
 vim.keymap.set("i", "<F1>", "<Esc>")
+-- Move to hover window without cycling through all panes
+vim.keymap.set("n", "<leader>h", function()
+	-- Find and focus the hover window
+	for _, win in ipairs(vim.api.nvim_list_wins()) do
+		local buf = vim.api.nvim_win_get_buf(win)
+		local buf_name = vim.api.nvim_buf_get_name(buf)
+		if buf_name == "" and vim.api.nvim_buf_get_option(buf, "buftype") == "nofile" then
+			vim.api.nvim_set_current_win(win)
+			return
+		end
+	end
+	print("No hover window found")
+end)
 
 -------------------------------------------------------------------------------
 --
@@ -463,6 +476,9 @@ require("lazy").setup({
 			vim.keymap.set("n", "<leader>e", vim.diagnostic.open_float)
 			vim.keymap.set("n", "[d", vim.diagnostic.goto_prev)
 			vim.keymap.set("n", "]d", vim.diagnostic.goto_next)
+			-- Additional mappings for compatibility with vimrc
+			vim.keymap.set("n", "]E", vim.diagnostic.goto_next)
+			vim.keymap.set("n", "[E", vim.diagnostic.goto_prev)
 			vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist)
 
 			-- Use LspAttach autocommand to only map the following keys
@@ -672,6 +688,57 @@ require("lazy").setup({
 			})
 		end,
 	},
+	-- GitHub Copilot
+	{
+		"zbirenbaum/copilot.lua",
+		cmd = "Copilot",
+		event = "InsertEnter",
+		config = function()
+			require("copilot").setup({
+				panel = {
+					enabled = true,
+					auto_refresh = false,
+					keymap = {
+						jump_prev = "[[",
+						jump_next = "]]",
+						accept = "<CR>",
+						refresh = "gr",
+						open = "<M-CR>"
+					},
+					layout = {
+						position = "bottom", -- | top | left | right
+						ratio = 0.4
+					},
+				},
+				suggestion = {
+					enabled = true,
+					auto_trigger = true,
+					debounce = 75,
+					keymap = {
+						accept = "<C-j>", -- Same as vimrc: <C-J>
+						accept_word = false,
+						accept_line = false,
+						next = "<C-]>", -- Same as vimrc: <C-]>
+						prev = false, -- Don't map previous, would conflict with <Esc>
+						dismiss = "<C-\\>", -- Different key to avoid conflicts
+					},
+				},
+				filetypes = {
+					yaml = false,
+					markdown = false,
+					help = false,
+					gitcommit = false,
+					gitrebase = false,
+					hgcommit = false,
+					svn = false,
+					cvs = false,
+					["."] = false,
+				},
+				copilot_node_command = 'node', -- Node.js version must be > 18.x
+				server_opts_overrides = {},
+			})
+		end,
+	},
 	-- LSP-based code-completion
 	{
 		"hrsh7th/nvim-cmp",
@@ -702,6 +769,21 @@ require("lazy").setup({
 					-- Accept currently selected item.
 					-- Set `select` to `false` to only confirm explicitly selected items.
 					["<CR>"] = cmp.mapping.confirm({ select = true }),
+					-- TAB cycling for completions (like vimrc)
+					["<Tab>"] = cmp.mapping(function(fallback)
+						if cmp.visible() then
+							cmp.select_next_item()
+						else
+							fallback()
+						end
+					end, { "i", "s" }),
+					["<S-Tab>"] = cmp.mapping(function(fallback)
+						if cmp.visible() then
+							cmp.select_prev_item()
+						else
+							fallback()
+						end
+					end, { "i", "s" }),
 				}),
 				sources = cmp.config.sources({
 					{ name = "nvim_lsp" },
