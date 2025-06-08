@@ -585,9 +585,11 @@ require("lazy").setup({
 	{
 		"pmizio/typescript-tools.nvim",
 		dependencies = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" },
-		ft = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
+		ft = { "typescript", "typescriptreact", "javascript", "javascriptreact", "js", "ts", "jsx", "tsx" },
 		config = function()
 			require("typescript-tools").setup({
+				-- Enable for JavaScript and TypeScript files
+				filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
 				-- Enhanced settings for better hover and functionality
 				settings = {
 					-- spawn additional tsserver instance to calculate diagnostics on it
@@ -899,6 +901,14 @@ require("lazy").setup({
 	{
 		"tpope/vim-sleuth",
 		lazy = false,
+	},
+	-- Add nvim-surround for text manipulation
+	{
+		"kylechui/nvim-surround",
+		event = "VeryLazy",
+		config = function()
+			require("nvim-surround").setup()
+		end,
 	},
 	-- language support
 	-- terraform
