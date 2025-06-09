@@ -85,14 +85,15 @@ vim.keymap.set("", "<C-p>", "<cmd>Files<cr>")
 vim.keymap.set("n", "<leader>;", "<cmd>Buffers<cr>")
 -- fuzzy search in files
 vim.keymap.set("n", "<leader>s", "<cmd>FzfLua live_grep<cr>")
+vim.keymap.set("n", "<leader>t", "<cmd>Yeet<cr>")
 -- search exact word under cursor
 vim.keymap.set("n", "<leader>rg", function()
 	local word = vim.fn.expand("<cword>")
 	if word ~= "" then
 		-- Use ripgrep's word boundary flag for exact matches
-		require("fzf-lua").live_grep({ 
+		require("fzf-lua").live_grep({
 			search = word,
-			rg_opts = "--word-regexp"
+			rg_opts = "--word-regexp",
 		})
 	else
 		print("No word under cursor")
@@ -722,11 +723,11 @@ require("lazy").setup({
 						jump_next = "]]",
 						accept = "<CR>",
 						refresh = "gr",
-						open = "<M-CR>"
+						open = "<M-CR>",
 					},
 					layout = {
 						position = "bottom", -- | top | left | right
-						ratio = 0.4
+						ratio = 0.4,
 					},
 				},
 				suggestion = {
@@ -753,7 +754,7 @@ require("lazy").setup({
 					cvs = false,
 					["."] = false,
 				},
-				copilot_node_command = 'node', -- Node.js version must be > 18.x
+				copilot_node_command = "node", -- Node.js version must be > 18.x
 				server_opts_overrides = {},
 			})
 		end,
@@ -1014,6 +1015,12 @@ require("lazy").setup({
 			},
 		},
 	},
+	{
+		"samharju/yeet.nvim",
+		version = "*", -- use the latest release, remove for master
+		cmd = "Yeet",
+		opts = {},
+	},
 })
 
 -------------------------------------------------------------------------------
@@ -1032,7 +1039,11 @@ vim.keymap.set("n", "<leader>bo", ":Bonly<cr>", { desc = "Close all buffers exce
 
 -- Commands for saving without formatting
 vim.api.nvim_create_user_command("WriteAllNoFormat", "noautocmd wa", { desc = "Write all files without formatting" })
-vim.api.nvim_create_user_command("ExitAllNoFormat", "noautocmd xa", { desc = "Write all files and exit without formatting" })
+vim.api.nvim_create_user_command(
+	"ExitAllNoFormat",
+	"noautocmd xa",
+	{ desc = "Write all files and exit without formatting" }
+)
 vim.api.nvim_create_user_command("QuitAllNoFormat", "noautocmd qa!", { desc = "Quit all without saving or formatting" })
 
 -- Add sleuth for automatic indentation detection (like in vimrc)
