@@ -5,6 +5,8 @@
 	b = branch
 	s = status
 	d = diff
+	# git pull and git checkout -b <new-branch>
+	C = "!f() { git checkout master && git pull && git checkout -b $1; }; f"
 	set-upstream = !git branch --set-upstream-to=origin/$(git symbolic-ref --short HEAD)
 [sequence]
 	editor = vi

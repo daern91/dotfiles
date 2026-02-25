@@ -8,14 +8,15 @@ compinit -i
 # gpg-shortcuts
 alias gpg-upload-keys='gpg --send-key $KEYID && gpg --keyserver keys.gnupg.net --send-key $KEYID && gpg --keyserver hkps://keyserver.ubuntu.com:443 --send-key $KEYID'
 alias gpg-change-card='gpg-connect-agent "scd serialno" "learn --force" /bye'
-alias claude="$HOME/.claude/local/claude"
 
+alias c='clear'
 # alias rsDC='pkill Docker && open -a Docker && docker compose up'
 alias gb='git b'
 alias gm='git m'
 alias gs='git s'
 alias gp='git p'
 alias gd='git d'
+alias gC='git C'
 alias gbDA='gb | egrep -v "(master|\*)" | xargs git branch -D'
 
 alias gck='git checkout $(gb | fzf)'
@@ -66,6 +67,9 @@ function y() {
 
 alias tma='tmux attach -t $(tmux ls | fzf | cut -d ':' -f1)'
 alias vif='vim $(fzf --height 40%)'
+alias vim='nvim'
+alias v='nvim'
+alias vi='nvim'
 alias python='python3'
 
 if $(command -v eza > /dev/null); then 
@@ -124,12 +128,14 @@ export PATH="/opt/homebrew/opt/openjdk@11/bin:$PATH"
 
 export PATH="/Users/daniel/Library/Python/3.10/bin:$PATH"
 
+alias claude="~/.claude/local/claude"
+
 export NVM_DIR="$HOME/.nvm"
 [ -s "$(brew --prefix)/opt/nvm/nvm.sh" ] && \. "$(brew --prefix)/opt/nvm/nvm.sh" # This loads nvm
 [ -s "$(brew --prefix)/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$(brew --prefix)/opt/nvm/etc/bash_completion.d/nvm" # This loads nvm bash_completion
 
 # pnpm
-export PNPM_HOME="/Users/daniel/Library/pnpm"
+export PNPM_HOME="/Users/daniel.eriksson/Library/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;

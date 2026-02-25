@@ -86,6 +86,7 @@ vim.keymap.set("n", "<leader>;", "<cmd>Buffers<cr>")
 -- fuzzy search in files
 vim.keymap.set("n", "<leader>s", "<cmd>FzfLua live_grep<cr>")
 vim.keymap.set("n", "<leader>t", "<cmd>Yeet<cr>")
+vim.keymap.set("n", "<leader>T", "<cmd>Yeet set<cr>")
 -- search exact word under cursor
 vim.keymap.set("n", "<leader>rg", function()
 	local word = vim.fn.expand("<cword>")
@@ -93,7 +94,8 @@ vim.keymap.set("n", "<leader>rg", function()
 		-- Use ripgrep's word boundary flag for exact matches
 		require("fzf-lua").live_grep({
 			search = word,
-			rg_opts = "--word-regexp",
+			rg_opts = "--word-regexp --line-number --column",
+			silent = true,
 		})
 	else
 		print("No word under cursor")
@@ -165,9 +167,9 @@ vim.keymap.set("i", "<up>", "<nop>")
 vim.keymap.set("i", "<down>", "<nop>")
 vim.keymap.set("i", "<left>", "<nop>")
 vim.keymap.set("i", "<right>", "<nop>")
--- -- make j and k move by visual line, not actual line, when text is soft-wrapped
--- vim.keymap.set('n', 'j', 'gj')
--- vim.keymap.set('n', 'k', 'gk')
+-- make j and k move by visual line, not actual line, when text is soft-wrapped
+vim.keymap.set("n", "j", "gj")
+vim.keymap.set("n", "k", "gk")
 -- -- handy keymap for replacing up to next _ (like in variable names)
 -- vim.keymap.set('n', '<leader>m', 'ct_')
 -- F1 is pretty close to Esc, so you probably meant Esc
@@ -425,12 +427,11 @@ require("lazy").setup({
 	{
 		"neovim/nvim-lspconfig",
 		config = function()
-			-- Setup language servers.
-			local lspconfig = require("lspconfig")
+			-- Setup language servers using new vim.lsp.config API (Nvim 0.11+)
 
 			-- Rust
-			lspconfig.rust_analyzer.setup({
-				-- Server-specific settings. See `:help lspconfig-setup`
+			vim.lsp.config("rust_analyzer", {
+				-- Server-specific settings. See `:help lsp-config`
 				settings = {
 					["rust-analyzer"] = {
 						cargo = {
@@ -451,23 +452,12 @@ require("lazy").setup({
 			})
 
 			-- Bash LSP
-			local configs = require("lspconfig.configs")
-			if not configs.bash_lsp and vim.fn.executable("bash-language-server") == 1 then
-				configs.bash_lsp = {
-					default_config = {
-						cmd = { "bash-language-server", "start" },
-						filetypes = { "sh" },
-						root_dir = require("lspconfig").util.find_git_ancestor,
-						init_options = {
-							settings = {
-								args = {},
-							},
-						},
-					},
-				}
-			end
-			if configs.bash_lsp then
-				lspconfig.bash_lsp.setup({})
+			if vim.fn.executable("bash-language-server") == 1 then
+				vim.lsp.config("bashls", {
+					cmd = { "bash-language-server", "start" },
+					filetypes = { "sh" },
+					root_markers = { ".git" },
+				})
 			end
 
 			-- TypeScript/JavaScript will be handled by typescript-tools.nvim plugin below
@@ -494,7 +484,7 @@ require("lazy").setup({
 					-- See `:help vim.lsp.*` for documentation on any of the below functions
 					local opts = { buffer = ev.buf }
 					vim.keymap.set("n", "gD", function()
-						vim.cmd("vsplit")
+						vim.cmd("rightbelow vsplit")
 						vim.lsp.buf.definition()
 						vim.cmd("normal! zz")
 					end, opts)
@@ -591,6 +581,55 @@ require("lazy").setup({
 			require("typescript-tools").setup({
 				-- Enable for JavaScript and TypeScript files
 				filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+				-- Custom handlers for better rename functionality (at top level, not in settings)
+				handlers = {
+					-- Enhanced rename handler that saves all affected files
+					["textDocument/rename"] = function(err, result, ctx, config)
+						if err then
+							vim.notify("Rename failed: " .. err.message, vim.log.levels.ERROR)
+							return
+						end
+
+						if not result then
+							vim.notify("Nothing to rename", vim.log.levels.INFO)
+							return
+						end
+
+						-- Apply the workspace edit
+						vim.lsp.util.apply_workspace_edit(result, "utf-8")
+
+						-- Collect all URIs that were modified
+						local modified_uris = {}
+
+						-- Handle changes format (uri -> array of changes)
+						if result.changes then
+							for uri, _ in pairs(result.changes) do
+								table.insert(modified_uris, uri)
+							end
+						end
+
+						-- Handle documentChanges format (array of document changes)
+						if result.documentChanges then
+							for _, change in ipairs(result.documentChanges) do
+								if change.textDocument and change.textDocument.uri then
+									table.insert(modified_uris, change.textDocument.uri)
+								end
+							end
+						end
+
+						-- Save all modified buffers
+						for _, uri in ipairs(modified_uris) do
+							local bufnr = vim.uri_to_bufnr(uri)
+							if vim.api.nvim_buf_is_loaded(bufnr) and vim.api.nvim_buf_get_option(bufnr, "modified") then
+								vim.api.nvim_buf_call(bufnr, function()
+									vim.cmd("write")
+								end)
+							end
+						end
+
+						vim.notify("Rename completed and " .. #modified_uris .. " files saved", vim.log.levels.INFO)
+					end,
+				},
 				-- Enhanced settings for better hover and functionality
 				settings = {
 					-- spawn additional tsserver instance to calculate diagnostics on it
@@ -601,7 +640,7 @@ require("lazy").setup({
 					-- "remove_unused_imports"|"organize_imports") -- or string "all"
 					-- to include all supported code actions
 					-- specify commands exposed as code_actions
-					expose_as_code_action = {},
+					expose_as_code_action = { "add_missing_imports", "remove_unused", "organize_imports" },
 					-- string|nil - specify a custom path to `tsserver.js` file, if this is nil or file under path
 					-- not exists then standard path resolution strategy is applied
 					tsserver_path = nil,
@@ -622,6 +661,9 @@ require("lazy").setup({
 						includeInlayPropertyDeclarationTypeHints = true,
 						includeInlayFunctionLikeReturnTypeHints = true,
 						includeInlayEnumMemberValueHints = true,
+						-- Better completion and import handling
+						includeCompletionsForModuleExports = true,
+						includePackageJsonAutoImports = "auto",
 					},
 					-- locale of all tsserver messages, supported locales you can find here:
 					-- https://github.com/microsoft/TypeScript/blob/3c221fc086be52b19801f6e8d82596d04607ede6/src/compiler/utilitiesPublic.ts#L620
@@ -759,68 +801,321 @@ require("lazy").setup({
 			})
 		end,
 	},
-	-- LSP-based code-completion
+	-- Modern completion engine with TypeScript support
 	{
-		"hrsh7th/nvim-cmp",
-		-- load cmp on InsertEnter
-		event = "InsertEnter",
-		-- these dependencies will only be loaded when cmp loads
-		-- dependencies are always lazy-loaded unless specified otherwise
+		"saghen/blink.cmp",
+		lazy = false, -- lazy loading handled internally
 		dependencies = {
-			"neovim/nvim-lspconfig",
-			"hrsh7th/cmp-nvim-lsp",
-			"hrsh7th/cmp-buffer",
-			"hrsh7th/cmp-path",
+			"rafamadriz/friendly-snippets", -- TypeScript and other snippets
+			"L3MON4D3/LuaSnip", -- Snippet engine
+		},
+		version = "v0.*",
+		opts = {
+			keymap = {
+				preset = "default",
+				["<C-space>"] = { "show", "show_documentation", "hide_documentation" },
+				["<C-e>"] = { "hide" },
+				["<CR>"] = { "accept", "fallback" },
+				["<Tab>"] = { "select_next", "snippet_forward", "fallback" },
+				["<S-Tab>"] = { "select_prev", "snippet_backward", "fallback" },
+				["<C-b>"] = { "scroll_documentation_up", "fallback" },
+				["<C-f>"] = { "scroll_documentation_down", "fallback" },
+			},
+			appearance = {
+				use_nvim_cmp_as_default = true,
+				nerd_font_variant = "mono",
+			},
+			sources = {
+				default = { "lsp", "path", "snippets", "buffer" },
+			},
+			completion = {
+				accept = {
+					auto_brackets = {
+						enabled = true,
+					},
+				},
+				menu = {
+					draw = {
+						treesitter = { "lsp" },
+					},
+				},
+				documentation = {
+					auto_show = true,
+					auto_show_delay_ms = 200,
+				},
+				ghost_text = {
+					enabled = true,
+				},
+			},
+			snippets = {
+				expand = function(snippet)
+					require("luasnip").lsp_expand(snippet)
+				end,
+				active = function(filter)
+					if filter and filter.direction then
+						return require("luasnip").jumpable(filter.direction)
+					end
+					return require("luasnip").in_snippet()
+				end,
+				jump = function(direction)
+					require("luasnip").jump(direction)
+				end,
+			},
+			signature = {
+				enabled = true,
+			},
+		},
+	},
+	-- Snippet engine (required for blink.cmp snippets)
+	{
+		"L3MON4D3/LuaSnip",
+		version = "v2.*",
+		build = "make install_jsregexp",
+		dependencies = {
+			"rafamadriz/friendly-snippets",
 		},
 		config = function()
-			local cmp = require("cmp")
-			cmp.setup({
-				snippet = {
-					-- REQUIRED by nvim-cmp. get rid of it once we can
-					expand = function(args)
-						vim.fn["vsnip#anonymous"](args.body)
-					end,
-				},
-				mapping = cmp.mapping.preset.insert({
-					["<C-b>"] = cmp.mapping.scroll_docs(-4),
-					["<C-f>"] = cmp.mapping.scroll_docs(4),
-					["<C-Space>"] = cmp.mapping.complete(),
-					["<C-e>"] = cmp.mapping.abort(),
-					-- Accept currently selected item.
-					-- Set `select` to `false` to only confirm explicitly selected items.
-					["<CR>"] = cmp.mapping.confirm({ select = true }),
-					-- TAB cycling for completions (like vimrc)
-					["<Tab>"] = cmp.mapping(function(fallback)
-						if cmp.visible() then
-							cmp.select_next_item()
-						else
-							fallback()
-						end
-					end, { "i", "s" }),
-					["<S-Tab>"] = cmp.mapping(function(fallback)
-						if cmp.visible() then
-							cmp.select_prev_item()
-						else
-							fallback()
-						end
-					end, { "i", "s" }),
-				}),
-				sources = cmp.config.sources({
-					{ name = "nvim_lsp" },
-				}, {
-					{ name = "path" },
-				}),
-				experimental = {
-					ghost_text = true,
-				},
-			})
+			require("luasnip.loaders.from_vscode").lazy_load()
 
-			-- Enable completing paths in :
-			cmp.setup.cmdline(":", {
-				sources = cmp.config.sources({
-					{ name = "path" },
-				}),
-			})
+			-- Custom console.log snippets
+			local ls = require("luasnip")
+			local s = ls.snippet
+			local t = ls.text_node
+			local i = ls.insert_node
+
+			-- Add custom snippets after VSCode snippets are loaded
+			vim.schedule(function()
+				-- JavaScript/TypeScript logging snippets
+				ls.add_snippets("javascript", {
+					s("clo", {
+						t("console.log("),
+						i(1),
+						t(");"),
+						i(0),
+					}),
+					s("clg", {
+						t("console.log('"),
+						i(1, "variable"),
+						t(":', "),
+						i(2),
+						t(");"),
+						i(0),
+					}),
+					s("cll", {
+						t("console.log('%c "),
+						i(1, "Debug"),
+						t("', 'color: orange; font-weight: bold');"),
+						i(0),
+					}),
+					s("cle", {
+						t("console.error('"),
+						i(1, "error"),
+						t(":', "),
+						i(2),
+						t(");"),
+						i(0),
+					}),
+					s("clw", {
+						t("console.warn('"),
+						i(1, "warning"),
+						t(":', "),
+						i(2),
+						t(");"),
+						i(0),
+					}),
+					s("clt", {
+						t("console.table("),
+						i(1),
+						t(");"),
+						i(0),
+					}),
+					s("cld", {
+						t("console.dir("),
+						i(1),
+						t(");"),
+						i(0),
+					}),
+					s("clj", {
+						t("console.log(JSON.stringify("),
+						i(1),
+						t(", null, 2));"),
+						i(0),
+					}),
+				})
+
+				-- Copy the same snippets for TypeScript
+				ls.add_snippets("typescript", {
+					s("clo", {
+						t("console.log("),
+						i(1),
+						t(");"),
+						i(0),
+					}),
+					s("clg", {
+						t("console.log('"),
+						i(1, "variable"),
+						t(":', "),
+						i(2),
+						t(");"),
+						i(0),
+					}),
+					s("cll", {
+						t("console.log('%c "),
+						i(1, "Debug"),
+						t("', 'color: orange; font-weight: bold');"),
+						i(0),
+					}),
+					s("cle", {
+						t("console.error('"),
+						i(1, "error"),
+						t(":', "),
+						i(2),
+						t(");"),
+						i(0),
+					}),
+					s("clw", {
+						t("console.warn('"),
+						i(1, "warning"),
+						t(":', "),
+						i(2),
+						t(");"),
+						i(0),
+					}),
+					s("clt", {
+						t("console.table("),
+						i(1),
+						t(");"),
+						i(0),
+					}),
+					s("cld", {
+						t("console.dir("),
+						i(1),
+						t(");"),
+						i(0),
+					}),
+					s("clj", {
+						t("console.log(JSON.stringify("),
+						i(1),
+						t(", null, 2));"),
+						i(0),
+					}),
+				})
+
+				-- Copy the same snippets for React (JSX/TSX)
+				ls.add_snippets("javascriptreact", {
+					s("clo", {
+						t("console.log("),
+						i(1),
+						t(");"),
+						i(0),
+					}),
+					s("clg", {
+						t("console.log('"),
+						i(1, "variable"),
+						t(":', "),
+						i(2),
+						t(");"),
+						i(0),
+					}),
+					s("cll", {
+						t("console.log('%c "),
+						i(1, "Debug"),
+						t("', 'color: orange; font-weight: bold');"),
+						i(0),
+					}),
+					s("cle", {
+						t("console.error('"),
+						i(1, "error"),
+						t(":', "),
+						i(2),
+						t(");"),
+						i(0),
+					}),
+					s("clw", {
+						t("console.warn('"),
+						i(1, "warning"),
+						t(":', "),
+						i(2),
+						t(");"),
+						i(0),
+					}),
+					s("clt", {
+						t("console.table("),
+						i(1),
+						t(");"),
+						i(0),
+					}),
+					s("cld", {
+						t("console.dir("),
+						i(1),
+						t(");"),
+						i(0),
+					}),
+					s("clj", {
+						t("console.log(JSON.stringify("),
+						i(1),
+						t(", null, 2));"),
+						i(0),
+					}),
+				})
+
+				ls.add_snippets("typescriptreact", {
+					s("clo", {
+						t("console.log("),
+						i(1),
+						t(");"),
+						i(0),
+					}),
+					s("clg", {
+						t("console.log('"),
+						i(1, "variable"),
+						t(":', "),
+						i(2),
+						t(");"),
+						i(0),
+					}),
+					s("cll", {
+						t("console.log('%c "),
+						i(1, "Debug"),
+						t("', 'color: orange; font-weight: bold');"),
+						i(0),
+					}),
+					s("cle", {
+						t("console.error('"),
+						i(1, "error"),
+						t(":', "),
+						i(2),
+						t(");"),
+						i(0),
+					}),
+					s("clw", {
+						t("console.warn('"),
+						i(1, "warning"),
+						t(":', "),
+						i(2),
+						t(");"),
+						i(0),
+					}),
+					s("clt", {
+						t("console.table("),
+						i(1),
+						t(");"),
+						i(0),
+					}),
+					s("cld", {
+						t("console.dir("),
+						i(1),
+						t(");"),
+						i(0),
+					}),
+					s("clj", {
+						t("console.log(JSON.stringify("),
+						i(1),
+						t(", null, 2));"),
+						i(0),
+					}),
+				})
+			end)
 		end,
 	},
 	-- inline function signatures
@@ -909,6 +1204,124 @@ require("lazy").setup({
 		event = "VeryLazy",
 		config = function()
 			require("nvim-surround").setup()
+		end,
+	},
+	-- Add vim-abolish for advanced search, substitution, and abbreviation
+	{
+		"tpope/vim-abolish",
+		dependencies = {
+			"markonm/traces.vim", -- Add traces.vim for live substitution preview
+		},
+		event = "VeryLazy",
+		config = function()
+			-- Enable traces.vim integration with Abolish
+			vim.g.traces_abolish_integration = 1
+
+			-- Create a shortcut for :Subvert command using :S with proper range handling
+			vim.api.nvim_create_user_command("S", function(opts)
+				local range = ""
+				if opts.range > 0 then
+					range = opts.line1 .. "," .. opts.line2
+				end
+				vim.cmd(range .. "Subvert " .. opts.args)
+			end, { nargs = "*", range = true })
+		end,
+	},
+	-- Treesitter for better syntax highlighting and code parsing
+	{
+		"nvim-treesitter/nvim-treesitter",
+		build = ":TSUpdate",
+		dependencies = {
+			"nvim-treesitter/nvim-treesitter-textobjects",
+		},
+		config = function()
+			require("nvim-treesitter.configs").setup({
+				-- Install parsers synchronously (only applied to `ensure_installed`)
+				sync_install = false,
+				-- Automatically install missing parsers when entering buffer
+				auto_install = true,
+				-- List of parsers to install (or "all" for all available parsers)
+				ensure_installed = {
+					"typescript",
+					"tsx",
+					"javascript",
+					"lua",
+					"rust",
+					"json",
+					"yaml",
+					"toml",
+					"markdown",
+					"bash",
+					"vim",
+					"vimdoc",
+				},
+				highlight = {
+					enable = true,
+					-- Setting this to true will run `:h syntax` and tree-sitter at the same time.
+					-- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
+					-- Using this option may slow down your editor, and you may see some duplicate highlights.
+					-- Instead of true it can also be a list of languages
+					additional_vim_regex_highlighting = false,
+				},
+				incremental_selection = {
+					enable = true,
+					keymaps = {
+						init_selection = "gnn",
+						node_incremental = "grn",
+						scope_incremental = "grc",
+						node_decremental = "grm",
+					},
+				},
+				indent = {
+					enable = true,
+				},
+				-- Treesitter text objects for semantic code navigation
+				textobjects = {
+					select = {
+						enable = true,
+						-- Automatically jump forward to textobj, similar to targets.vim
+						lookahead = true,
+						keymaps = {
+							-- Arguments/parameters (like vim-angry)
+							["aa"] = "@parameter.outer",
+							["ia"] = "@parameter.inner",
+							-- Functions
+							["af"] = "@function.outer",
+							["if"] = "@function.inner",
+							-- Classes
+							["ac"] = "@class.outer",
+							["ic"] = "@class.inner",
+							-- Conditionals (if/else)
+							["ai"] = "@conditional.outer",
+							["ii"] = "@conditional.inner",
+							-- Loops
+							["al"] = "@loop.outer",
+							["il"] = "@loop.inner",
+						},
+					},
+					-- Move between text objects
+					move = {
+						enable = true,
+						set_jumps = true, -- whether to set jumps in the jumplist
+						goto_next_start = {
+							["]f"] = "@function.outer",
+							["]c"] = "@class.outer",
+						},
+						goto_next_end = {
+							["]F"] = "@function.outer",
+							["]C"] = "@class.outer",
+						},
+						goto_previous_start = {
+							["[f"] = "@function.outer",
+							["[c"] = "@class.outer",
+						},
+						goto_previous_end = {
+							["[F"] = "@function.outer",
+							["[C"] = "@class.outer",
+						},
+					},
+				},
+			})
 		end,
 	},
 	-- language support
@@ -1021,7 +1434,261 @@ require("lazy").setup({
 		cmd = "Yeet",
 		opts = {},
 	},
+	-- Refactoring tool with console.log insertion
+	{
+		"ThePrimeagen/refactoring.nvim",
+		dependencies = {
+			"nvim-lua/plenary.nvim",
+			"nvim-treesitter/nvim-treesitter",
+		},
+		config = function()
+			require("refactoring").setup({
+				-- Customize console.log statements for TypeScript
+				print_var_statements = {
+					typescript = {
+						'console.log("%s:", %s);',
+					},
+					javascript = {
+						'console.log("%s:", %s);',
+					},
+					typescriptreact = {
+						'console.log("%s:", %s);',
+					},
+					javascriptreact = {
+						'console.log("%s:", %s);',
+					},
+				},
+				show_success_message = true,
+			})
+
+			-- Console.log the current word under cursor
+			vim.keymap.set({ "n", "v" }, "<leader>L", function()
+				require("refactoring").debug.print_var()
+			end, { desc = "Console.log current word/selection" })
+
+			-- Cleanup all debug statements
+			vim.keymap.set("n", "<leader>lc", function()
+				require("refactoring").debug.cleanup({})
+			end, { desc = "Cleanup debug statements" })
+		end,
+	},
+	-- Git client - modern alternative to fugitive
+	{
+		"NeogitOrg/neogit",
+		dependencies = {
+			"nvim-lua/plenary.nvim", -- required
+			"sindrets/diffview.nvim", -- optional - Diff integration
+			"ibhagwan/fzf-lua", -- alternative to telescope
+		},
+		config = function()
+			local neogit = require("neogit")
+			neogit.setup({
+				-- Hunk-level staging in commits
+				disable_hint = false,
+				use_magit_keybindings = false,
+				-- Use fzf-lua instead of telescope for better integration
+				integrations = {
+					fzf_lua = true,
+					diffview = true,
+				},
+			})
+
+			-- Add keybinding for opening Neogit
+			vim.keymap.set("n", "<leader>g", function()
+				neogit.open()
+			end, { desc = "Open Neogit" })
+		end,
+	},
+	-- Git diff and file history viewer
+	{
+		"sindrets/diffview.nvim",
+		dependencies = { "nvim-lua/plenary.nvim" },
+		config = function()
+			require("diffview").setup({
+				enhanced_diff_hl = true, -- See ':h diffview-config-enhanced_diff_hl'
+			})
+
+			-- Add keybindings for diffview
+			vim.keymap.set("n", "<leader>gd", "<cmd>DiffviewOpen<cr>", { desc = "Open Diffview" })
+			vim.keymap.set("n", "<leader>gh", "<cmd>DiffviewFileHistory %<cr>", { desc = "File History" })
+			vim.keymap.set("v", "<leader>gh", ":'<,'>DiffviewFileHistory<cr>", { desc = "File History (Selection)" })
+			vim.keymap.set("n", "<leader>gc", "<cmd>DiffviewClose<cr>", { desc = "Close Diffview" })
+		end,
+	},
+	-- Git signs in the gutter
+	{
+		"lewis6991/gitsigns.nvim",
+		config = function()
+			require("gitsigns").setup({
+				signs = {
+					add = { text = "│" },
+					change = { text = "│" },
+					delete = { text = "_" },
+					topdelete = { text = "‾" },
+					changedelete = { text = "~" },
+					untracked = { text = "┆" },
+				},
+				current_line_blame = false, -- Set to true to show blame on all lines by default
+				current_line_blame_opts = {
+					virt_text = true,
+					virt_text_pos = "eol", -- 'eol' | 'overlay' | 'right_align'
+					delay = 1000,
+					ignore_whitespace = false,
+				},
+				on_attach = function(bufnr)
+					local gs = package.loaded.gitsigns
+
+					-- Navigation
+					vim.keymap.set("n", "]c", function()
+						if vim.wo.diff then
+							return "]c"
+						end
+						vim.schedule(function()
+							gs.next_hunk()
+						end)
+						return "<Ignore>"
+					end, { expr = true, buffer = bufnr })
+
+					vim.keymap.set("n", "[c", function()
+						if vim.wo.diff then
+							return "[c"
+						end
+						vim.schedule(function()
+							gs.prev_hunk()
+						end)
+						return "<Ignore>"
+					end, { expr = true, buffer = bufnr })
+
+					-- Actions
+					vim.keymap.set("n", "<leader>hs", gs.stage_hunk, { buffer = bufnr, desc = "Stage Hunk" })
+					vim.keymap.set("n", "<leader>hr", gs.reset_hunk, { buffer = bufnr, desc = "Reset Hunk" })
+					vim.keymap.set("v", "<leader>hs", function()
+						gs.stage_hunk({ vim.fn.line("."), vim.fn.line("v") })
+					end, { buffer = bufnr, desc = "Stage Hunk" })
+					vim.keymap.set("v", "<leader>hr", function()
+						gs.reset_hunk({ vim.fn.line("."), vim.fn.line("v") })
+					end, { buffer = bufnr, desc = "Reset Hunk" })
+					vim.keymap.set("n", "<leader>hS", gs.stage_buffer, { buffer = bufnr, desc = "Stage Buffer" })
+					vim.keymap.set("n", "<leader>hu", gs.undo_stage_hunk, { buffer = bufnr, desc = "Undo Stage Hunk" })
+					vim.keymap.set("n", "<leader>hR", gs.reset_buffer, { buffer = bufnr, desc = "Reset Buffer" })
+					vim.keymap.set("n", "<leader>hp", gs.preview_hunk, { buffer = bufnr, desc = "Preview Hunk" })
+					vim.keymap.set("n", "<leader>hb", function()
+						gs.blame_line({ full = true })
+					end, { buffer = bufnr, desc = "Blame Line" })
+					vim.keymap.set(
+						"n",
+						"<leader>gb",
+						"<cmd>Gitsigns blame<cr>",
+						{ buffer = bufnr, desc = "Git Blame Buffer" }
+					)
+					vim.keymap.set("n", "<leader>hd", gs.diffthis, { buffer = bufnr, desc = "Diff This" })
+					vim.keymap.set("n", "<leader>hD", function()
+						gs.diffthis("~")
+					end, { buffer = bufnr, desc = "Diff This ~" })
+					vim.keymap.set("n", "<leader>td", gs.toggle_deleted, { buffer = bufnr, desc = "Toggle Deleted" })
+
+					-- Text object
+					vim.keymap.set(
+						{ "o", "x" },
+						"ih",
+						":<C-U>Gitsigns select_hunk<CR>",
+						{ buffer = bufnr, desc = "Select Hunk" }
+					)
+				end,
+			})
+		end,
+	},
+	-- Sideways.vim for moving function arguments, list items, etc.
+	{
+		"AndrewRadev/sideways.vim",
+		config = function()
+			-- Movement keybindings (using Alt instead of Ctrl to avoid conflict with <C-h> for nohlsearch)
+			vim.keymap.set("n", "<M-h>", ":SidewaysLeft<CR>", { desc = "Move argument left" })
+			vim.keymap.set("n", "<M-l>", ":SidewaysRight<CR>", { desc = "Move argument right" })
+			vim.keymap.set("n", "[a", ":SidewaysJumpLeft<CR>", { silent = true, desc = "Jump to left argument" })
+			vim.keymap.set("n", "]a", ":SidewaysJumpRight<CR>", { silent = true, desc = "Jump to right argument" })
+			vim.keymap.set("n", "<leader>i", "<Plug>SidewaysArgumentInsertBefore", { desc = "Insert argument before" })
+
+			-- Plugin setting (same as vimrc)
+			vim.g.sideways_add_item_cursor_restore = 1
+		end,
+	},
 })
+
+-------------------------------------------------------------------------------
+--
+-- GitHub Browse functionality (like vim-rhubarb's :GBrowse)
+--
+-------------------------------------------------------------------------------
+-- Function to get GitHub URL for current file/selection
+local function get_github_url()
+	-- Get git remote URL
+	local remote_url = vim.fn.systemlist("git remote get-url origin")[1]
+	if vim.v.shell_error ~= 0 then
+		print("Error: Not in a git repository or no origin remote found")
+		return nil
+	end
+
+	-- Convert SSH/HTTPS URL to GitHub web URL
+	local github_url = remote_url
+	-- Handle SSH URLs (git@github.com:user/repo.git)
+	github_url = github_url:gsub("git@github%.com:", "https://github.com/")
+	-- Handle HTTPS URLs and remove .git suffix
+	github_url = github_url:gsub("%.git$", "")
+
+	-- Get current file path relative to repo root
+	local repo_root = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
+	if vim.v.shell_error ~= 0 then
+		print("Error: Could not find git repository root")
+		return nil
+	end
+
+	local current_file = vim.fn.expand("%:p")
+	local relative_path = current_file:gsub("^" .. vim.pesc(repo_root .. "/"), "")
+
+	-- Get current branch
+	local branch = vim.fn.systemlist("git branch --show-current")[1]
+	if vim.v.shell_error ~= 0 then
+		branch = "main" -- fallback to main
+	end
+
+	-- Construct the URL
+	local url = github_url .. "/blob/" .. branch .. "/" .. relative_path
+
+	-- Add line numbers if in visual mode
+	local mode = vim.fn.mode()
+	if mode == "v" or mode == "V" or mode == "\22" then -- visual modes
+		local start_line = vim.fn.line("v")
+		local end_line = vim.fn.line(".")
+		if start_line > end_line then
+			start_line, end_line = end_line, start_line
+		end
+		if start_line == end_line then
+			url = url .. "#L" .. start_line
+		else
+			url = url .. "#L" .. start_line .. "-L" .. end_line
+		end
+	else
+		-- Add current line number for normal mode
+		local current_line = vim.fn.line(".")
+		url = url .. "#L" .. current_line
+	end
+
+	return url
+end
+
+-- Function to open GitHub URL in browser
+local function github_browse()
+	local url = get_github_url()
+	if url then
+		-- Use macOS 'open' command to open URL in browser
+		vim.fn.system("open '" .. url .. "'")
+		print("Opened: " .. url)
+	end
+end
+
+-- Set up the keymap for GitHub browse (using <leader>gB since <leader>gb is taken by Gitsigns blame)
+vim.keymap.set({ "n", "v" }, "<leader>gB", github_browse, { desc = "Open file on GitHub" })
 
 -------------------------------------------------------------------------------
 --
