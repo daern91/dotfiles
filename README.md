@@ -9,16 +9,16 @@ My personal dotfiles for macOS, managed with [dotbot](https://github.com/anishat
 git clone https://github.com/daern91/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 
-# Install dotfiles (creates symlinks)
-./install
-
-# Install Homebrew packages
+# Install Homebrew packages first (before symlinking configs that depend on them)
 brew bundle install
 
 # Install tools that use native installers
 curl -fsSL https://claude.ai/install.sh | bash        # Claude Code
 curl -LsSf https://astral.sh/uv/install.sh | sh       # uv (Python)
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh  # Rust
+
+# Symlink dotfiles (after tools are installed)
+./install
 
 # Start Homebrew auto-updates (runs every 24h in background)
 brew autoupdate start --upgrade --cleanup
@@ -64,14 +64,13 @@ These tools work best with their own installers:
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
    ```
 
-2. **Clone and install dotfiles**:
+2. **Clone the repo**:
    ```bash
    git clone https://github.com/daern91/dotfiles.git ~/.dotfiles
    cd ~/.dotfiles
-   ./install
    ```
 
-3. **Install Homebrew packages**:
+3. **Install Homebrew packages** (before symlinking configs):
    ```bash
    brew bundle install
    ```
@@ -83,15 +82,20 @@ These tools work best with their own installers:
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
    ```
 
-5. **Start auto-updates**:
+5. **Symlink dotfiles** (after tools are installed):
+   ```bash
+   ./install
+   ```
+
+6. **Start auto-updates**:
    ```bash
    brew autoupdate start --upgrade --cleanup
    ```
 
-6. **Create `variables.sh`** (referenced in .zshrc):
+7. **Create `variables.sh`** (optional, for personal env vars):
    ```bash
-   cp ~/variables.sh.example ~/variables.sh
-   # Edit with your personal variables/secrets
+   touch ~/variables.sh
+   # Add your personal environment variables/secrets
    ```
 
 ## Updating
@@ -128,6 +132,11 @@ rustup update
 ├── init.lua              # Neovim configuration
 └── variables.sh          # Personal variables (not tracked)
 ```
+
+## Prerequisites
+
+- **MonoLisa font**: Install [MonoLisa](https://www.monolisa.dev/) (used by Ghostty and Neovim)
+- **TPM (Tmux Plugin Manager)**: `git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm`, then press `prefix + I` inside tmux to install plugins
 
 ## Notes
 

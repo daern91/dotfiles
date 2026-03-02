@@ -13,7 +13,6 @@
     ~/.zshrc: .zshrc
     ~/.config/ghostty/config: ghostty.config
     ~/.config/nvim/init.lua: init.lua
-    ~/variables.sh: variables.sh
 
 - create:
     - ~/downloads

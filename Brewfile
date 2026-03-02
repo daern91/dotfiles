@@ -1,8 +1,5 @@
 # Taps
 tap "homebrew/autoupdate"
-tap "homebrew/bundle"
-tap "homebrew/cask"
-tap "homebrew/core"
 tap "homebrew/services"
 tap "stripe/stripe-cli"
 tap "supabase/tap"

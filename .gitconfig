@@ -9,9 +9,9 @@
 	C = "!f() { git checkout master && git pull && git checkout -b $1; }; f"
 	set-upstream = !git branch --set-upstream-to=origin/$(git symbolic-ref --short HEAD)
 [sequence]
-	editor = vi
+	editor = nvim
 [core]
-	editor = vi
+	editor = nvim
 [pull]
 	rebase = false
 [user]
@@ -24,10 +24,10 @@
 	helper = manager-core
 [credential "https://github.com"]
 	helper = 
-	helper = !/opt/homebrew/bin/gh auth git-credential
+	helper = !gh auth git-credential
 [credential "https://gist.github.com"]
 	helper = 
-	helper = !/opt/homebrew/bin/gh auth git-credential
+	helper = !gh auth git-credential
 [filter "lfs"]
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f

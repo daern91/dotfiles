@@ -1,6 +1,9 @@
-eval "$(/opt/homebrew/bin/brew shellenv)"
+if [ -f /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -f /usr/local/bin/brew ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
 
-# gh completion -s zsh > /usr/local/share/zsh/site-functions/_gh
 autoload -Uz compinit
 autoload bashcompinit && bashcompinit
 compinit -i
@@ -10,20 +13,18 @@ alias gpg-upload-keys='gpg --send-key $KEYID && gpg --keyserver keys.gnupg.net -
 alias gpg-change-card='gpg-connect-agent "scd serialno" "learn --force" /bye'
 
 alias c='clear'
-# alias rsDC='pkill Docker && open -a Docker && docker compose up'
 alias gb='git b'
 alias gm='git m'
 alias gs='git s'
 alias gp='git p'
 alias gd='git d'
 alias gC='git C'
-alias gbDA='gb | egrep -v "(master|\*)" | xargs git branch -D'
+alias gbDA='gb | egrep -v "(master|main|\*)" | xargs git branch -D'
 
 alias gck='git checkout $(gb | fzf)'
 alias gbd='gb -d $(gb | fzf)'
 
-alias g='git add -A && git commit -m "progress" && gp &> /dev/null'
-alias openbb='"/Applications/OpenBB Terminal/OpenBB Terminal"'
+alias g='git add -A && git diff --cached --stat && git commit -m "progress" && gp'
 alias gha='gh search prs --state=open --review-requested=@me'
 alias ghp='gh search prs --state=open --author=@me'
 
@@ -70,44 +71,37 @@ alias vif='vim $(fzf --height 40%)'
 alias vim='nvim'
 alias v='nvim'
 alias vi='nvim'
-alias python='python3'
 
-if $(command -v eza > /dev/null); then 
+if command -v eza &>/dev/null; then
 	alias l='eza'
 	alias ls='eza'
 	alias ll='eza -l'
 	alias lll='eza -la'
-else 
+else
 	alias l='ls'
 	alias ll='ls -l'
-	alias lll='ls -la';
+	alias lll='ls -la'
 fi
 
-if $(command -v bat > /dev/null); then 
+if command -v bat &>/dev/null; then
 	alias cat='bat'
-else 
-	# alias lll='ls -la';
 fi
 
-# [ -f /opt/homebrew/etc/profile.d/autojump.sh ] && . /opt/homebrew/etc/profile.d/autojump.sh
 eval "$(zoxide init --cmd j zsh)"
 
 bindkey -e
-export EDITOR=vim
+export EDITOR=nvim
 export LC_ALL=en_GB.UTF-8
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 export FZF_DEFAULT_COMMAND='rg --files --follow --hidden'
 export FZF_DEFAULT_OPTS='--height 40%'
 
-source ~/variables.sh
+[ -f ~/variables.sh ] && source ~/variables.sh
 
-# [[ /usr/local/bin/kubectl ]] && source <(kubectl completion zsh) # add autocomplete permanently to your zsh shell
 alias tf="terraform"
 alias k="kubectl"
-complete -F __start_kubectl k
-# plugins=(git git-flow brew history node npm kubectl zsh-autosuggestions)
-plugins=(git git-flow brew history node npm kubectl)
+command -v kubectl &>/dev/null && source <(kubectl completion zsh) && compdef k=kubectl
 
 alias mux='pgrep -vx tmux > /dev/null && \
 		tmux new -d -s delete-me && \
@@ -116,17 +110,11 @@ alias mux='pgrep -vx tmux > /dev/null && \
 		tmux attach || tmux attach'
 
 eval "$(starship init zsh)"
-export PATH="/usr/local/opt/libpq/bin:$PATH"
+export PATH="${HOMEBREW_PREFIX}/opt/libpq/bin:$PATH"
 
 source ${HOMEBREW_PREFIX}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 export GPG_TTY=$(tty)
-
-export PATH=/opt/homebrew/bin:$PATH
-
-export PATH="/opt/homebrew/opt/openjdk@11/bin:$PATH"
-
-export PATH="$HOME/Library/Python/3.10/bin:$PATH"
 
 alias claude="~/.claude/local/claude"
 
@@ -139,14 +127,10 @@ case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
-# Prefer pnpm over npm (comment out if you encounter compatibility issues)
-alias npm='pnpm'
 # pnpm end
 
-
-eval "$(github-copilot-cli alias -- "$0")"
 
 # Atuin - magical shell history
 eval "$(atuin init zsh)"
 
-. "$HOME/.local/bin/env"
+[ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
