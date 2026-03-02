@@ -32,6 +32,7 @@ brew "rename"                       # Batch file rename
 brew "git"                          # Version control
 brew "git-flow"                     # Git branching model
 brew "gh"                           # GitHub CLI
+brew "glab"                         # GitLab CLI
 brew "neovim"                       # Text editor
 brew "cmake"                        # Build system
 brew "fnm"                          # Fast Node.js version manager
