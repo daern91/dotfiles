@@ -126,27 +126,27 @@ export PATH=/opt/homebrew/bin:$PATH
 
 export PATH="/opt/homebrew/opt/openjdk@11/bin:$PATH"
 
-export PATH="/Users/daniel/Library/Python/3.10/bin:$PATH"
+export PATH="$HOME/Library/Python/3.10/bin:$PATH"
 
 alias claude="~/.claude/local/claude"
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$(brew --prefix)/opt/nvm/nvm.sh" ] && \. "$(brew --prefix)/opt/nvm/nvm.sh" # This loads nvm
-[ -s "$(brew --prefix)/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$(brew --prefix)/opt/nvm/etc/bash_completion.d/nvm" # This loads nvm bash_completion
+# Fast Node Manager (fnm) - replaces nvm
+eval "$(fnm env --use-on-cd)"
 
 # pnpm
-export PNPM_HOME="/Users/daniel.eriksson/Library/pnpm"
+export PNPM_HOME="$HOME/Library/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
+# Prefer pnpm over npm (comment out if you encounter compatibility issues)
+alias npm='pnpm'
 # pnpm end
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 eval "$(github-copilot-cli alias -- "$0")"
+
+# Atuin - magical shell history
+eval "$(atuin init zsh)"
 
 . "$HOME/.local/bin/env"

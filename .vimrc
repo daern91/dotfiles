@@ -548,6 +548,7 @@ let g:copilot_no_tab_map = v:true
 " Better tab experience - from https://webdevetc.com/
 map <leader>tn :tabnew<cr>
 map <leader>tt :tabnext
+map <leader>t<leader><cr> :tabnext
 map <leader>tm :tabmove
 map <leader>tc :tabclose<cr>
 map <leader>to :tabonly<cr>
@@ -603,3 +604,16 @@ nmap <leader>d :RgIn ~/docs<cr>
 nnoremap <C-Space> yiw:RgIn `=GetGitRoot()` <C-r>"<cr>
 " Search current selection in Git repo
 vnoremap <C-Space> y:RgIn `=GetGitRoot()` <C-r>"<cr>
+nnoremap <silent> <leader>y :call StatusDiagnosticToClipboard()<CR>
+function! StatusDiagnosticToClipboard()
+  call setreg('+','')
+  let diagList=CocAction('diagnosticList')
+  let line=line('.') 
+  for diagItem in diagList
+    if line == diagItem['lnum']
+      let str=diagItem['message']
+      call setreg('+',str)
+      return
+    endif
+  endfor 
+endfunction

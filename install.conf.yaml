@@ -11,7 +11,7 @@
     ~/.gitconfig: .gitconfig
     ~/.vimrc: .vimrc
     ~/.zshrc: .zshrc
-    ~/.config/alacritty/alacritty.toml: alacritty.toml
+    ~/.config/ghostty/config: ghostty.config
     ~/.config/nvim/init.lua: init.lua
     ~/variables.sh: variables.sh
 
