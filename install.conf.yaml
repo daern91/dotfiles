@@ -17,3 +17,5 @@
 - create:
     - ~/downloads
     - ~/.vim/undodir
+    - ~/.config/nvim
+    - ~/.config/ghostty
