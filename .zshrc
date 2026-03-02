@@ -116,7 +116,8 @@ source ${HOMEBREW_PREFIX}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 export GPG_TTY=$(tty)
 
-alias claude="~/.claude/local/claude"
+# ~/.local/bin: claude-code, uv, pipx, etc.
+export PATH="$HOME/.local/bin:$PATH"
 
 # Fast Node Manager (fnm) - replaces nvm
 eval "$(fnm env --use-on-cd)"
