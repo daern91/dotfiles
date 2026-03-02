@@ -7,77 +7,18 @@ vim.g.mapleader = " "
 -- preferences
 --
 -------------------------------------------------------------------------------
--- -- never ever folding
--- vim.opt.foldenable = false
--- vim.opt.foldmethod = 'manual'
--- vim.opt.foldlevelstart = 99
--- -- very basic "continue indent" mode (autoindent) is always on in neovim
--- -- could try smartindent/cindent, but meh.
--- -- vim.opt.cindent = true
--- -- XXX
--- -- vim.opt.cmdheight = 2
--- -- vim.opt.completeopt = 'menuone,noinsert,noselect'
--- -- not setting updatedtime because I use K to manually trigger hover effects
--- -- and lowering it also changes how frequently files are written to swap.
--- -- vim.opt.updatetime = 300
--- -- if key combos seem to be "lagging"
--- -- http://stackoverflow.com/questions/2158516/delay-before-o-opens-a-new-line
--- -- vim.opt.timeoutlen = 300
--- -- keep more context on screen while scrolling
--- vim.opt.scrolloff = 2
--- -- never show me line breaks if they're not there
--- vim.opt.wrap = false
--- -- always draw sign column. prevents buffer moving when adding/deleting sign
--- vim.opt.signcolumn = 'yes'
 -- sweet sweet relative line numbers
 vim.opt.relativenumber = true
 -- and show the absolute line number for the current line
 vim.opt.number = true
--- -- keep current content top + left when splitting
--- vim.opt.splitright = true
--- vim.opt.splitbelow = true
 -- infinite undo!
 -- NOTE: ends up in ~/.local/state/nvim/undo/
 vim.opt.undofile = true
--- --" Decent wildmenu
--- -- in completion, when there is more than one match,
--- -- list all matches, and only complete to longest common match
--- vim.opt.wildmode = 'list:longest'
--- -- when opening a file with a command (like :e),
--- -- don't suggest files like there:
--- vim.opt.wildignore = '.hg,.svn,*~,*.png,*.jpg,*.gif,*.min.js,*.swp,*.o,vendor,dist,_site'
 -- tabs: use same settings as vimrc
 vim.opt.shiftwidth = 2
 vim.opt.softtabstop = 2
 vim.opt.tabstop = 2
 vim.opt.expandtab = true
--- -- case-insensitive search/replace
--- vim.opt.ignorecase = true
--- -- unless uppercase in search term
--- vim.opt.smartcase = true
--- -- never ever make my terminal beep
--- vim.opt.vb = true
--- -- more useful diffs (nvim -d)
--- --- by ignoring whitespace
--- vim.opt.diffopt:append('iwhite')
--- --- and using a smarter algorithm
--- --- https://vimways.org/2018/the-power-of-diff/
--- --- https://stackoverflow.com/questions/32365271/whats-the-difference-between-git-diff-patience-and-git-diff-histogram
--- --- https://luppeng.wordpress.com/2020/10/10/when-to-use-each-of-the-git-diff-algorithms/
--- vim.opt.diffopt:append('algorithm:histogram')
--- vim.opt.diffopt:append('indent-heuristic')
--- -- show a column at 80 characters as a guide for long lines
--- vim.opt.colorcolumn = '80'
--- --- except in Rust where the rule is 100 characters
--- vim.api.nvim_create_autocmd('Filetype', { pattern = 'rust', command = 'set colorcolumn=100' })
--- -- show more hidden characters
--- -- also, show tabs nicer
--- vim.opt.listchars = 'tab:^ ,nbsp:¬,extends:»,precedes:«,trail:•'
---
--- -------------------------------------------------------------------------------
--- --
--- -- hotkeys
--- --
 -- -------------------------------------------------------------------------------
 -- quick-open
 vim.keymap.set("", "<C-p>", "<cmd>Files<cr>")
@@ -181,7 +122,7 @@ vim.keymap.set("n", "<leader>h", function()
 	for _, win in ipairs(vim.api.nvim_list_wins()) do
 		local buf = vim.api.nvim_win_get_buf(win)
 		local buf_name = vim.api.nvim_buf_get_name(buf)
-		if buf_name == "" and vim.api.nvim_buf_get_option(buf, "buftype") == "nofile" then
+		if buf_name == "" and vim.bo[buf].buftype == "nofile" then
 			vim.api.nvim_set_current_win(win)
 			return
 		end
@@ -217,38 +158,8 @@ vim.api.nvim_create_autocmd("BufRead", { pattern = "*.orig", command = "set read
 vim.api.nvim_create_autocmd("BufRead", { pattern = "*.pacnew", command = "set readonly" })
 -- leave paste mode when leaving insert mode (if it was on)
 vim.api.nvim_create_autocmd("InsertLeave", { pattern = "*", command = "set nopaste" })
--- -- help filetype detection (add as needed)
--- --vim.api.nvim_create_autocmd('BufRead', { pattern = '*.ext', command = 'set filetype=someft' })
--- -- correctly classify mutt buffers
--- local email = vim.api.nvim_create_augroup('email', { clear = true })
--- vim.api.nvim_create_autocmd({ 'BufNewFile', 'BufRead' }, {
--- 	pattern = '/tmp/mutt*',
--- 	group = email,
--- 	command = 'setfiletype mail',
--- })
--- -- also, produce "flowed text" wrapping
--- -- https://brianbuccola.com/line-breaks-in-mutt-and-vim/
--- vim.api.nvim_create_autocmd('Filetype', {
---   pattern = 'mail',
---   group = email,
---   command = 'setlocal formatoptions+=w',
--- })
--- -- shorter columns in text because it reads better that way
--- local text = vim.api.nvim_create_augroup('text', { clear = true })
--- for _, pat in ipairs({'text', 'markdown', 'mail', 'gitcommit'}) do
--- 	vim.api.nvim_create_autocmd('Filetype', {
--- 		pattern = pat,
--- 		group = text,
--- 		command = 'setlocal spell tw=72 colorcolumn=73',
--- 	})
--- end
--- --- tex has so much syntax that a little wider is ok
--- vim.api.nvim_create_autocmd('Filetype', {
--- 	pattern = 'tex',
--- 	group = text,
--- 	command = 'setlocal spell tw=80 colorcolumn=81',
--- })
--- -- TODO: no autocomplete in text
+-- Rust standard is 100 character line width
+vim.api.nvim_create_autocmd("Filetype", { pattern = "rust", command = "set colorcolumn=100" })
 
 -------------------------------------------------------------------------------
 --
@@ -258,7 +169,7 @@ vim.api.nvim_create_autocmd("InsertLeave", { pattern = "*", command = "set nopas
 -- first, grab the manager
 -- https://github.com/folke/lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
+if not vim.uv.fs_stat(lazypath) then
 	vim.fn.system({
 		"git",
 		"clone",
@@ -428,28 +339,7 @@ require("lazy").setup({
 		"neovim/nvim-lspconfig",
 		config = function()
 			-- Setup language servers using new vim.lsp.config API (Nvim 0.11+)
-
-			-- Rust
-			vim.lsp.config("rust_analyzer", {
-				-- Server-specific settings. See `:help lsp-config`
-				settings = {
-					["rust-analyzer"] = {
-						cargo = {
-							allFeatures = true,
-						},
-						imports = {
-							group = {
-								enable = false,
-							},
-						},
-						completion = {
-							postfix = {
-								enable = false,
-							},
-						},
-					},
-				},
-			})
+			-- NOTE: Rust is handled by rustaceanvim (manages its own LSP client)
 
 			-- Bash LSP
 			if vim.fn.executable("bash-language-server") == 1 then
@@ -620,7 +510,7 @@ require("lazy").setup({
 						-- Save all modified buffers
 						for _, uri in ipairs(modified_uris) do
 							local bufnr = vim.uri_to_bufnr(uri)
-							if vim.api.nvim_buf_is_loaded(bufnr) and vim.api.nvim_buf_get_option(bufnr, "modified") then
+							if vim.api.nvim_buf_is_loaded(bufnr) and vim.bo[bufnr].modified then
 								vim.api.nvim_buf_call(bufnr, function()
 									vim.cmd("write")
 								end)
@@ -1340,15 +1230,130 @@ require("lazy").setup({
 			"nvim-treesitter/nvim-treesitter",
 		},
 	},
-	-- rust
+	-- rust (rustaceanvim manages its own rust-analyzer LSP client)
 	{
-		"rust-lang/rust.vim",
-		ft = { "rust" },
+		"mrcjkb/rustaceanvim",
+		version = "^8",
+		lazy = false, -- lazy-loads internally via ftplugin
+		init = function()
+			---@type rustaceanvim.Opts
+			vim.g.rustaceanvim = {
+				tools = {},
+				server = {
+					on_attach = function(client, bufnr)
+						local opts = { buffer = bufnr, silent = true }
+						vim.keymap.set("n", "<leader>ca", function()
+							vim.cmd.RustLsp("codeAction")
+						end, vim.tbl_extend("force", opts, { desc = "Rust code action" }))
+						vim.keymap.set("n", "<leader>rd", function()
+							vim.cmd.RustLsp("debuggables")
+						end, vim.tbl_extend("force", opts, { desc = "Rust debuggables" }))
+						vim.keymap.set("n", "<leader>rr", function()
+							vim.cmd.RustLsp("runnables")
+						end, vim.tbl_extend("force", opts, { desc = "Rust runnables" }))
+						vim.keymap.set("n", "<leader>re", function()
+							vim.cmd.RustLsp("explainError")
+						end, vim.tbl_extend("force", opts, { desc = "Rust explain error" }))
+						vim.keymap.set("n", "<leader>rm", function()
+							vim.cmd.RustLsp("expandMacro")
+						end, vim.tbl_extend("force", opts, { desc = "Rust expand macro" }))
+						vim.keymap.set("n", "K", function()
+							vim.cmd.RustLsp({ "hover", "actions" })
+						end, vim.tbl_extend("force", opts, { desc = "Rust hover actions" }))
+					end,
+					default_settings = {
+						["rust-analyzer"] = {
+							cargo = {
+								allFeatures = true,
+								buildScripts = {
+									enable = true,
+								},
+							},
+							check = {
+								command = "clippy",
+							},
+							procMacro = {
+								enable = true,
+							},
+							imports = {
+								group = {
+									enable = false,
+								},
+							},
+							completion = {
+								postfix = {
+									enable = false,
+								},
+							},
+						},
+					},
+				},
+			}
+		end,
+	},
+	-- rustowl: visualize ownership, borrowing, and lifetimes in Rust code
+	{
+		"cordx56/rustowl",
+		version = "*",
+		build = "cargo install rustowl",
+		lazy = false,
+		opts = {},
+	},
+	-- crates.nvim for Cargo.toml management
+	{
+		"saecki/crates.nvim",
+		event = { "BufRead Cargo.toml" },
+		opts = {
+			lsp = {
+				enabled = true,
+				actions = true,
+				completion = true,
+				hover = true,
+			},
+			completion = {
+				cmp = {
+					enabled = false,
+				},
+				crates = {
+					enabled = true,
+				},
+			},
+		},
+	},
+	-- nvim-dap for debugging
+	{
+		"mfussenegger/nvim-dap",
+		keys = {
+			{ "<leader>db", function() require("dap").toggle_breakpoint() end, desc = "Toggle breakpoint" },
+			{ "<leader>dc", function() require("dap").continue() end, desc = "Continue" },
+			{ "<leader>do", function() require("dap").step_over() end, desc = "Step over" },
+			{ "<leader>di", function() require("dap").step_into() end, desc = "Step into" },
+			{ "<leader>dO", function() require("dap").step_out() end, desc = "Step out" },
+		},
+	},
+	-- nvim-dap-ui for visual debugging
+	{
+		"rcarriga/nvim-dap-ui",
+		dependencies = {
+			"mfussenegger/nvim-dap",
+			"nvim-neotest/nvim-nio",
+		},
+		keys = {
+			{ "<leader>du", function() require("dapui").toggle() end, desc = "Toggle DAP UI" },
+		},
 		config = function()
-			vim.g.rustfmt_autosave = 1
-			vim.g.rustfmt_emit_files = 1
-			vim.g.rustfmt_fail_silently = 0
-			vim.g.rust_clip_command = "pbcopy"
+			local dapui = require("dapui")
+			dapui.setup()
+			local dap = require("dap")
+			dap.listeners.after.event_initialized["dapui_config"] = function()
+				dapui.open()
+			end
+			dap.listeners.before.event_terminated["dapui_config"] = function()
+				dapui.close()
+			end
+			dap.listeners.before.event_exited["dapui_config"] = function()
+				dapui.close()
+			end
 		end,
 	},
 	-- markdown
@@ -1456,6 +1461,9 @@ require("lazy").setup({
 					},
 					javascriptreact = {
 						'console.log("%s:", %s);',
+					},
+					rust = {
+						'println!("{}: {:?}", "%s", %s);',
 					},
 				},
 				show_success_message = true,
