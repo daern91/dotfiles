@@ -19,6 +19,7 @@ brew "thefuck"                      # Correct mistyped commands
 
 # File & Text Tools
 brew "bat"                          # cat with syntax highlighting
+brew "coreutils"                    # GNU core utilities (grealpath etc.)
 brew "eza"                          # Modern ls replacement
 brew "fd"                           # Modern find replacement
 brew "ripgrep"                      # Modern grep replacement
@@ -34,6 +35,7 @@ brew "git-flow"                     # Git branching model
 brew "gh"                           # GitHub CLI
 brew "glab"                         # GitLab CLI
 brew "neovim"                       # Text editor
+brew "tree-sitter"                  # Parser generator (needed by nvim-treesitter)
 brew "cmake"                        # Build system
 brew "fnm"                          # Fast Node.js version manager
 brew "pnpm"                         # Fast Node.js package manager

@@ -19,6 +19,8 @@ vim.opt.shiftwidth = 2
 vim.opt.softtabstop = 2
 vim.opt.tabstop = 2
 vim.opt.expandtab = true
+-- live preview of :s substitutions
+vim.opt.inccommand = "split"
 -- -------------------------------------------------------------------------------
 -- quick-open
 vim.keymap.set("", "<C-p>", "<cmd>Files<cr>")
@@ -255,9 +257,10 @@ require("lazy").setup({
 	},
 	-- quick navigation
 	{
-		"ggandor/leap.nvim",
+		url = "https://codeberg.org/andyg/leap.nvim",
 		config = function()
-			require("leap").create_default_mappings()
+			vim.keymap.set({ "n", "x", "o" }, "s", "<Plug>(leap)")
+			vim.keymap.set("n", "S", "<Plug>(leap-from-window)")
 		end,
 	},
 	-- better %
@@ -603,22 +606,12 @@ require("lazy").setup({
 					typescript = { "prettierd", "prettier", stop_after_first = true },
 					javascriptreact = { "prettierd", "prettier", stop_after_first = true },
 					typescriptreact = { "prettierd", "prettier", stop_after_first = true },
-					vue = { "prettierd", "prettier", stop_after_first = true },
-					css = { "prettierd", "prettier", stop_after_first = true },
-					scss = { "prettierd", "prettier", stop_after_first = true },
-					less = { "prettierd", "prettier", stop_after_first = true },
-					html = { "prettierd", "prettier", stop_after_first = true },
 					json = { "prettierd", "prettier", stop_after_first = true },
 					jsonc = { "prettierd", "prettier", stop_after_first = true },
 					yaml = { "prettierd", "prettier", stop_after_first = true },
 					markdown = { "prettierd", "prettier", stop_after_first = true },
-					graphql = { "prettierd", "prettier", stop_after_first = true },
-					handlebars = { "prettierd", "prettier", stop_after_first = true },
-					-- Add other formatters as needed
 					lua = { "stylua" },
 					rust = { "rustfmt" },
-					-- Use a sub-list to run multiple formatters
-					-- python = { "isort", "black" },
 				},
 				-- Set up format-on-save
 				format_on_save = function(bufnr)
@@ -691,15 +684,15 @@ require("lazy").setup({
 			})
 		end,
 	},
-	-- Modern completion engine with TypeScript support
+	-- Modern completion engine
 	{
 		"saghen/blink.cmp",
 		lazy = false, -- lazy loading handled internally
 		dependencies = {
-			"rafamadriz/friendly-snippets", -- TypeScript and other snippets
-			"L3MON4D3/LuaSnip", -- Snippet engine
+			"rafamadriz/friendly-snippets",
+			"L3MON4D3/LuaSnip",
 		},
-		version = "v0.*",
+		version = "1.*",
 		opts = {
 			keymap = {
 				preset = "default",
@@ -712,7 +705,6 @@ require("lazy").setup({
 				["<C-f>"] = { "scroll_documentation_down", "fallback" },
 			},
 			appearance = {
-				use_nvim_cmp_as_default = true,
 				nerd_font_variant = "mono",
 			},
 			sources = {
@@ -738,23 +730,16 @@ require("lazy").setup({
 				},
 			},
 			snippets = {
-				expand = function(snippet)
-					require("luasnip").lsp_expand(snippet)
-				end,
-				active = function(filter)
-					if filter and filter.direction then
-						return require("luasnip").jumpable(filter.direction)
-					end
-					return require("luasnip").in_snippet()
-				end,
-				jump = function(direction)
-					require("luasnip").jump(direction)
-				end,
+				preset = "luasnip",
 			},
 			signature = {
 				enabled = true,
 			},
+			fuzzy = {
+				implementation = "prefer_rust_with_warning",
+			},
 		},
+		opts_extend = { "sources.default" },
 	},
 	-- Snippet engine (required for blink.cmp snippets)
 	{
@@ -766,262 +751,14 @@ require("lazy").setup({
 		},
 		config = function()
 			require("luasnip.loaders.from_vscode").lazy_load()
-
-			-- Custom console.log snippets
-			local ls = require("luasnip")
-			local s = ls.snippet
-			local t = ls.text_node
-			local i = ls.insert_node
-
-			-- Add custom snippets after VSCode snippets are loaded
-			vim.schedule(function()
-				-- JavaScript/TypeScript logging snippets
-				ls.add_snippets("javascript", {
-					s("clo", {
-						t("console.log("),
-						i(1),
-						t(");"),
-						i(0),
-					}),
-					s("clg", {
-						t("console.log('"),
-						i(1, "variable"),
-						t(":', "),
-						i(2),
-						t(");"),
-						i(0),
-					}),
-					s("cll", {
-						t("console.log('%c "),
-						i(1, "Debug"),
-						t("', 'color: orange; font-weight: bold');"),
-						i(0),
-					}),
-					s("cle", {
-						t("console.error('"),
-						i(1, "error"),
-						t(":', "),
-						i(2),
-						t(");"),
-						i(0),
-					}),
-					s("clw", {
-						t("console.warn('"),
-						i(1, "warning"),
-						t(":', "),
-						i(2),
-						t(");"),
-						i(0),
-					}),
-					s("clt", {
-						t("console.table("),
-						i(1),
-						t(");"),
-						i(0),
-					}),
-					s("cld", {
-						t("console.dir("),
-						i(1),
-						t(");"),
-						i(0),
-					}),
-					s("clj", {
-						t("console.log(JSON.stringify("),
-						i(1),
-						t(", null, 2));"),
-						i(0),
-					}),
-				})
-
-				-- Copy the same snippets for TypeScript
-				ls.add_snippets("typescript", {
-					s("clo", {
-						t("console.log("),
-						i(1),
-						t(");"),
-						i(0),
-					}),
-					s("clg", {
-						t("console.log('"),
-						i(1, "variable"),
-						t(":', "),
-						i(2),
-						t(");"),
-						i(0),
-					}),
-					s("cll", {
-						t("console.log('%c "),
-						i(1, "Debug"),
-						t("', 'color: orange; font-weight: bold');"),
-						i(0),
-					}),
-					s("cle", {
-						t("console.error('"),
-						i(1, "error"),
-						t(":', "),
-						i(2),
-						t(");"),
-						i(0),
-					}),
-					s("clw", {
-						t("console.warn('"),
-						i(1, "warning"),
-						t(":', "),
-						i(2),
-						t(");"),
-						i(0),
-					}),
-					s("clt", {
-						t("console.table("),
-						i(1),
-						t(");"),
-						i(0),
-					}),
-					s("cld", {
-						t("console.dir("),
-						i(1),
-						t(");"),
-						i(0),
-					}),
-					s("clj", {
-						t("console.log(JSON.stringify("),
-						i(1),
-						t(", null, 2));"),
-						i(0),
-					}),
-				})
-
-				-- Copy the same snippets for React (JSX/TSX)
-				ls.add_snippets("javascriptreact", {
-					s("clo", {
-						t("console.log("),
-						i(1),
-						t(");"),
-						i(0),
-					}),
-					s("clg", {
-						t("console.log('"),
-						i(1, "variable"),
-						t(":', "),
-						i(2),
-						t(");"),
-						i(0),
-					}),
-					s("cll", {
-						t("console.log('%c "),
-						i(1, "Debug"),
-						t("', 'color: orange; font-weight: bold');"),
-						i(0),
-					}),
-					s("cle", {
-						t("console.error('"),
-						i(1, "error"),
-						t(":', "),
-						i(2),
-						t(");"),
-						i(0),
-					}),
-					s("clw", {
-						t("console.warn('"),
-						i(1, "warning"),
-						t(":', "),
-						i(2),
-						t(");"),
-						i(0),
-					}),
-					s("clt", {
-						t("console.table("),
-						i(1),
-						t(");"),
-						i(0),
-					}),
-					s("cld", {
-						t("console.dir("),
-						i(1),
-						t(");"),
-						i(0),
-					}),
-					s("clj", {
-						t("console.log(JSON.stringify("),
-						i(1),
-						t(", null, 2));"),
-						i(0),
-					}),
-				})
-
-				ls.add_snippets("typescriptreact", {
-					s("clo", {
-						t("console.log("),
-						i(1),
-						t(");"),
-						i(0),
-					}),
-					s("clg", {
-						t("console.log('"),
-						i(1, "variable"),
-						t(":', "),
-						i(2),
-						t(");"),
-						i(0),
-					}),
-					s("cll", {
-						t("console.log('%c "),
-						i(1, "Debug"),
-						t("', 'color: orange; font-weight: bold');"),
-						i(0),
-					}),
-					s("cle", {
-						t("console.error('"),
-						i(1, "error"),
-						t(":', "),
-						i(2),
-						t(");"),
-						i(0),
-					}),
-					s("clw", {
-						t("console.warn('"),
-						i(1, "warning"),
-						t(":', "),
-						i(2),
-						t(");"),
-						i(0),
-					}),
-					s("clt", {
-						t("console.table("),
-						i(1),
-						t(");"),
-						i(0),
-					}),
-					s("cld", {
-						t("console.dir("),
-						i(1),
-						t(");"),
-						i(0),
-					}),
-					s("clj", {
-						t("console.log(JSON.stringify("),
-						i(1),
-						t(", null, 2));"),
-						i(0),
-					}),
-				})
-			end)
 		end,
 	},
-	-- inline function signatures
+	-- Snacks utility library (used by yazi.nvim for notifications)
 	{
-		"ray-x/lsp_signature.nvim",
-		event = "VeryLazy",
+		"folke/snacks.nvim",
+		lazy = false,
+		priority = 1000,
 		opts = {},
-		config = function(_, opts)
-			-- Get signatures (and _only_ signatures) when in argument lists.
-			require("lsp_signature").setup({
-				doc_lines = 0,
-				handler_opts = {
-					border = "none",
-				},
-			})
-		end,
 	},
 	-- Yazi file manager integration
 	{
@@ -1099,14 +836,8 @@ require("lazy").setup({
 	-- Add vim-abolish for advanced search, substitution, and abbreviation
 	{
 		"tpope/vim-abolish",
-		dependencies = {
-			"markonm/traces.vim", -- Add traces.vim for live substitution preview
-		},
 		event = "VeryLazy",
 		config = function()
-			-- Enable traces.vim integration with Abolish
-			vim.g.traces_abolish_integration = 1
-
 			-- Create a shortcut for :Subvert command using :S with proper range handling
 			vim.api.nvim_create_user_command("S", function(opts)
 				local range = ""
@@ -1120,98 +851,113 @@ require("lazy").setup({
 	-- Treesitter for better syntax highlighting and code parsing
 	{
 		"nvim-treesitter/nvim-treesitter",
+		lazy = false,
 		build = ":TSUpdate",
 		dependencies = {
 			"nvim-treesitter/nvim-treesitter-textobjects",
 		},
 		config = function()
-			require("nvim-treesitter.configs").setup({
-				-- Install parsers synchronously (only applied to `ensure_installed`)
-				sync_install = false,
-				-- Automatically install missing parsers when entering buffer
-				auto_install = true,
-				-- List of parsers to install (or "all" for all available parsers)
-				ensure_installed = {
-					"typescript",
-					"tsx",
-					"javascript",
-					"lua",
-					"rust",
-					"json",
-					"yaml",
-					"toml",
-					"markdown",
-					"bash",
-					"vim",
-					"vimdoc",
-				},
-				highlight = {
-					enable = true,
-					-- Setting this to true will run `:h syntax` and tree-sitter at the same time.
-					-- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
-					-- Using this option may slow down your editor, and you may see some duplicate highlights.
-					-- Instead of true it can also be a list of languages
-					additional_vim_regex_highlighting = false,
-				},
-				incremental_selection = {
-					enable = true,
-					keymaps = {
-						init_selection = "gnn",
-						node_incremental = "grn",
-						scope_incremental = "grc",
-						node_decremental = "grm",
-					},
-				},
-				indent = {
-					enable = true,
-				},
-				-- Treesitter text objects for semantic code navigation
-				textobjects = {
-					select = {
-						enable = true,
-						-- Automatically jump forward to textobj, similar to targets.vim
-						lookahead = true,
-						keymaps = {
-							-- Arguments/parameters (like vim-angry)
-							["aa"] = "@parameter.outer",
-							["ia"] = "@parameter.inner",
-							-- Functions
-							["af"] = "@function.outer",
-							["if"] = "@function.inner",
-							-- Classes
-							["ac"] = "@class.outer",
-							["ic"] = "@class.inner",
-							-- Conditionals (if/else)
-							["ai"] = "@conditional.outer",
-							["ii"] = "@conditional.inner",
-							-- Loops
-							["al"] = "@loop.outer",
-							["il"] = "@loop.inner",
-						},
-					},
-					-- Move between text objects
-					move = {
-						enable = true,
-						set_jumps = true, -- whether to set jumps in the jumplist
-						goto_next_start = {
-							["]f"] = "@function.outer",
-							["]c"] = "@class.outer",
-						},
-						goto_next_end = {
-							["]F"] = "@function.outer",
-							["]C"] = "@class.outer",
-						},
-						goto_previous_start = {
-							["[f"] = "@function.outer",
-							["[c"] = "@class.outer",
-						},
-						goto_previous_end = {
-							["[F"] = "@function.outer",
-							["[C"] = "@class.outer",
-						},
-					},
-				},
+			require("nvim-treesitter").setup()
+
+			-- Install parsers
+			require("nvim-treesitter").install({
+				"typescript",
+				"tsx",
+				"javascript",
+				"lua",
+				"rust",
+				"json",
+				"yaml",
+				"toml",
+				"markdown",
+				"bash",
+				"vim",
+				"vimdoc",
 			})
+
+			-- Enable treesitter highlighting and indentation via FileType autocommand
+			vim.api.nvim_create_autocmd("FileType", {
+				callback = function()
+					pcall(vim.treesitter.start)
+					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+				end,
+			})
+
+			-- Incremental selection
+			vim.keymap.set("n", "gnn", function()
+				require("nvim-treesitter.incremental_selection").init_selection()
+			end)
+			vim.keymap.set("v", "grn", function()
+				require("nvim-treesitter.incremental_selection").node_incremental()
+			end)
+			vim.keymap.set("v", "grc", function()
+				require("nvim-treesitter.incremental_selection").scope_incremental()
+			end)
+			vim.keymap.set("v", "grm", function()
+				require("nvim-treesitter.incremental_selection").node_decremental()
+			end)
+		end,
+	},
+	-- Treesitter text objects for semantic code navigation
+	{
+		"nvim-treesitter/nvim-treesitter-textobjects",
+		lazy = false,
+		config = function()
+			require("nvim-treesitter-textobjects").setup()
+
+			-- Text object selection
+			local select_textobject = require("nvim-treesitter-textobjects.select")
+			local move = require("nvim-treesitter-textobjects.move")
+
+			local function map_select(key, query)
+				vim.keymap.set({ "x", "o" }, key, function()
+					select_textobject.select_textobject(query, "textobjects")
+				end)
+			end
+
+			-- Arguments/parameters
+			map_select("aa", "@parameter.outer")
+			map_select("ia", "@parameter.inner")
+			-- Functions
+			map_select("af", "@function.outer")
+			map_select("if", "@function.inner")
+			-- Classes
+			map_select("ac", "@class.outer")
+			map_select("ic", "@class.inner")
+			-- Conditionals
+			map_select("ai", "@conditional.outer")
+			map_select("ii", "@conditional.inner")
+			-- Loops
+			map_select("al", "@loop.outer")
+			map_select("il", "@loop.inner")
+
+			-- Move between text objects
+			local ts_repeat_move = require("nvim-treesitter-textobjects.repeatable_move")
+
+			vim.keymap.set({ "n", "x", "o" }, "]f", function()
+				move.goto_next_start("@function.outer", "textobjects")
+			end)
+			vim.keymap.set({ "n", "x", "o" }, "]c", function()
+				move.goto_next_start("@class.outer", "textobjects")
+			end)
+			vim.keymap.set({ "n", "x", "o" }, "]F", function()
+				move.goto_next_end("@function.outer", "textobjects")
+			end)
+			vim.keymap.set({ "n", "x", "o" }, "]C", function()
+				move.goto_next_end("@class.outer", "textobjects")
+			end)
+			vim.keymap.set({ "n", "x", "o" }, "[f", function()
+				move.goto_previous_start("@function.outer", "textobjects")
+			end)
+			vim.keymap.set({ "n", "x", "o" }, "[c", function()
+				move.goto_previous_start("@class.outer", "textobjects")
+			end)
+			vim.keymap.set({ "n", "x", "o" }, "[F", function()
+				move.goto_previous_end("@function.outer", "textobjects")
+			end)
+			vim.keymap.set({ "n", "x", "o" }, "[C", function()
+				move.goto_previous_end("@class.outer", "textobjects")
+			end)
 		end,
 	},
 	-- language support
@@ -1220,8 +966,6 @@ require("lazy").setup({
 		"hashivim/vim-terraform",
 		ft = { "terraform" },
 	},
-	-- toml
-	"cespare/vim-toml",
 	-- yaml
 	{
 		"cuducos/yaml.nvim",
@@ -1358,80 +1102,9 @@ require("lazy").setup({
 	},
 	-- markdown
 	{
-		"plasticboy/vim-markdown",
+		"MeanderingProgrammer/render-markdown.nvim",
 		ft = { "markdown" },
-		dependencies = {
-			"godlygeek/tabular",
-		},
-		config = function()
-			-- never ever fold!
-			vim.g.vim_markdown_folding_disabled = 1
-			-- support front-matter in .md files
-			vim.g.vim_markdown_frontmatter = 1
-			-- 'o' on a list item should insert at same level
-			vim.g.vim_markdown_new_list_item_indent = 0
-			-- don't add bullets when wrapping:
-			-- https://github.com/preservim/vim-markdown/issues/232
-			vim.g.vim_markdown_auto_insert_bullets = 0
-		end,
-	},
-	{
-		"yetone/avante.nvim",
-		event = "VeryLazy",
-		lazy = false,
-		version = false, -- set this if you want to always pull the latest change
-		opts = {
-			provider = "vertex_claude",
-			providers = {
-				vertex_claude = {
-					endpoint = "https://LOCATION-aiplatform.googleapis.com/v1/projects/PROJECT_ID/locations/LOCATION/publishers/anthropic/models",
-					-- model = "claude-3-7-sonnet@20250219",
-					model = "claude-sonnet-4@20250514",
-					timeout = 30000,
-					extra_request_body = {
-						temperature = 0,
-						max_tokens = 4096,
-					},
-					-- api_key_name = "cmd:echo $VERTEX_TOKEN" -- uncomment if you don’t want to rely on gcloud ADC
-				},
-			},
-		},
-		-- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
-		build = "make",
-		-- build = "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false" -- for windows
-		dependencies = {
-			"stevearc/dressing.nvim",
-			"nvim-lua/plenary.nvim",
-			"MunifTanjim/nui.nvim",
-			--- The below dependencies are optional,
-			"nvim-tree/nvim-web-devicons", -- or echasnovski/mini.icons
-			"zbirenbaum/copilot.lua", -- for providers='copilot'
-			{
-				-- support for image pasting
-				"HakonHarnes/img-clip.nvim",
-				event = "VeryLazy",
-				opts = {
-					-- recommended settings
-					default = {
-						embed_image_as_base64 = false,
-						prompt_for_file_name = false,
-						drag_and_drop = {
-							insert_mode = true,
-						},
-						-- required for Windows users
-						use_absolute_path = true,
-					},
-				},
-			},
-			{
-				-- Make sure to set this up properly if you have lazy=true
-				"MeanderingProgrammer/render-markdown.nvim",
-				opts = {
-					file_types = { "markdown", "Avante" },
-				},
-				ft = { "markdown", "Avante" },
-			},
-		},
+		opts = {},
 	},
 	{
 		"samharju/yeet.nvim",
