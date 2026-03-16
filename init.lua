@@ -2,6 +2,9 @@
 vim.keymap.set("n", "<Space>", "<Nop>", { silent = true })
 vim.g.mapleader = " "
 
+-- Disable Nvim 0.11+ built-in rust_analyzer auto-start (rustaceanvim manages its own)
+vim.lsp.enable("rust_analyzer", false)
+
 -------------------------------------------------------------------------------
 --
 -- preferences
@@ -50,59 +53,20 @@ vim.keymap.set("n", "<leader>w", "<cmd>w<cr>")
 vim.keymap.set("n", "<leader>W", "<cmd>noautocmd w<cr>")
 -- save all without formatting
 vim.keymap.set("n", "<leader>Wa", "<cmd>noautocmd wa<cr>")
--- -- make missing : less annoying
--- vim.keymap.set('n', ';', ':')
--- -- Ctrl+j and Ctrl+k as Esc
--- vim.keymap.set('n', '<C-j>', '<Esc>')
--- vim.keymap.set('i', '<C-j>', '<Esc>')
--- vim.keymap.set('v', '<C-j>', '<Esc>')
--- vim.keymap.set('s', '<C-j>', '<Esc>')
--- vim.keymap.set('x', '<C-j>', '<Esc>')
--- vim.keymap.set('c', '<C-j>', '<Esc>')
--- vim.keymap.set('o', '<C-j>', '<Esc>')
--- vim.keymap.set('l', '<C-j>', '<Esc>')
--- vim.keymap.set('t', '<C-j>', '<Esc>')
--- -- Ctrl-j is a little awkward unfortunately:
--- -- https://github.com/neovim/neovim/issues/5916
--- -- So we also map Ctrl+k
--- vim.keymap.set('n', '<C-k>', '<Esc>')
--- vim.keymap.set('i', '<C-k>', '<Esc>')
--- vim.keymap.set('v', '<C-k>', '<Esc>')
--- vim.keymap.set('s', '<C-k>', '<Esc>')
--- vim.keymap.set('x', '<C-k>', '<Esc>')
--- vim.keymap.set('c', '<C-k>', '<Esc>')
--- vim.keymap.set('o', '<C-k>', '<Esc>')
--- vim.keymap.set('l', '<C-k>', '<Esc>')
--- vim.keymap.set('t', '<C-k>', '<Esc>')
 -- Ctrl+h to stop searching
 vim.keymap.set("v", "<C-h>", "<cmd>nohlsearch<cr>")
 vim.keymap.set("n", "<C-h>", "<cmd>nohlsearch<cr>")
--- -- Jump to start and end of line using the home row keys
--- vim.keymap.set('', 'H', '^')
--- vim.keymap.set('', 'L', '$')
--- Neat X clipboard integration
--- <leader>p will paste clipboard into buffer
--- <leader>c will copy entire buffer into clipboard
--- vim.keymap.set('n', '<leader>p', '<cmd>read !wl-paste<cr>')
--- vim.keymap.set('n', '<leader>c', '<cmd>w !wl-copy<cr><cr>')
+-- clipboard integration
 vim.keymap.set("", "<leader>p", '"+p')
 vim.keymap.set("", "<leader>c", '"+y')
 -- <leader><leader> toggles between buffers
 vim.keymap.set("n", "<leader><leader>", "<c-^>")
--- -- <leader>, shows/hides hidden characters
--- vim.keymap.set('n', '<leader>,', ':set invlist<cr>')
 -- always center search results
 vim.keymap.set("n", "n", "nzz", { silent = true })
 vim.keymap.set("n", "N", "Nzz", { silent = true })
 vim.keymap.set("n", "*", "*zz", { silent = true })
 vim.keymap.set("n", "#", "#zz", { silent = true })
 vim.keymap.set("n", "g*", "g*zz", { silent = true })
--- "very magic" (less escaping needed) regexes by default
--- vim.keymap.set('n', '?', '?\\v')
--- vim.keymap.set('n', '/', '/\\v')
--- vim.keymap.set('c', '%s/', '%sm/')
--- -- open new file adjacent to current file
--- vim.keymap.set('n', '<leader>o', ':e <C-R>=expand("%:p:h") . "/" <cr>')
 -- no arrow keys --- force yourself to use the home row
 vim.keymap.set("n", "<up>", "<nop>")
 vim.keymap.set("n", "<down>", "<nop>")
@@ -113,8 +77,6 @@ vim.keymap.set("i", "<right>", "<nop>")
 -- make j and k move by visual line, not actual line, when text is soft-wrapped
 vim.keymap.set("n", "j", "gj")
 vim.keymap.set("n", "k", "gk")
--- -- handy keymap for replacing up to next _ (like in variable names)
--- vim.keymap.set('n', '<leader>m', 'ct_')
 -- F1 is pretty close to Esc, so you probably meant Esc
 vim.keymap.set("", "<F1>", "<Esc>")
 vim.keymap.set("i", "<F1>", "<Esc>")
@@ -160,8 +122,8 @@ vim.api.nvim_create_autocmd("BufRead", { pattern = "*.orig", command = "set read
 vim.api.nvim_create_autocmd("BufRead", { pattern = "*.pacnew", command = "set readonly" })
 -- leave paste mode when leaving insert mode (if it was on)
 vim.api.nvim_create_autocmd("InsertLeave", { pattern = "*", command = "set nopaste" })
--- Rust standard is 100 character line width
-vim.api.nvim_create_autocmd("Filetype", { pattern = "rust", command = "set colorcolumn=100" })
+-- Rust uses 4-space indentation
+vim.api.nvim_create_autocmd("FileType", { pattern = "rust", command = "setlocal shiftwidth=4 softtabstop=4 tabstop=4" })
 
 -------------------------------------------------------------------------------
 --
@@ -185,22 +147,30 @@ vim.opt.rtp:prepend(lazypath)
 -- then, setup!
 ---@type LazySpec[]
 require("lazy").setup({
-	-- Session management (like in vimrc)
+	-- Session management (auto-saves on exit, auto-restores on open)
 	{
-		"tpope/vim-obsession",
+		"folke/persistence.nvim",
 		lazy = false,
-	},
-	{
-		"dhruvasagar/vim-prosession",
-		lazy = false,
-		dependencies = {
-			"tpope/vim-obsession",
-		},
-		config = function()
-			-- Create & use a 'default' session when no matching session is found
-			vim.g.prosession_default_session = 1
-			-- Set the directory where sessions are stored
-			vim.g.prosession_dir = vim.fn.expand("~/.vim/session/")
+		opts = {},
+		config = function(_, opts)
+			local persistence = require("persistence")
+			persistence.setup(opts)
+			-- Auto-restore session for current directory on startup
+			-- (only when nvim is opened without file arguments)
+			vim.api.nvim_create_autocmd("VimEnter", {
+				nested = true,
+				callback = function()
+					if vim.fn.argc() == 0 and not vim.g.started_with_stdin then
+						persistence.load()
+					end
+				end,
+			})
+			-- Detect stdin
+			vim.api.nvim_create_autocmd("StdinReadPre", {
+				callback = function()
+					vim.g.started_with_stdin = true
+				end,
+			})
 		end,
 	},
 	-- main color scheme
@@ -337,12 +307,17 @@ require("lazy").setup({
 			end, {})
 		end,
 	},
+	-- LSP progress indicator (bottom-right corner)
+	{
+		"j-hui/fidget.nvim",
+		opts = {},
+	},
 	-- LSP
 	{
 		"neovim/nvim-lspconfig",
 		config = function()
 			-- Setup language servers using new vim.lsp.config API (Nvim 0.11+)
-			-- NOTE: Rust is handled by rustaceanvim (manages its own LSP client)
+			-- NOTE: Rust is handled by rustaceanvim (see top of file for rust_analyzer disable)
 
 			-- Bash LSP
 			if vim.fn.executable("bash-language-server") == 1 then
@@ -389,28 +364,7 @@ require("lazy").setup({
 						vim.lsp.buf.type_definition()
 						vim.cmd("normal! zz")
 					end, opts)
-					-- Enhanced hover functionality with better scrolling
-					vim.keymap.set("n", "K", function()
-						-- First try LSP hover
-						local hover_available = false
-						for _, client in pairs(vim.lsp.get_clients({ bufnr = 0 })) do
-							if client.server_capabilities.hoverProvider then
-								hover_available = true
-								break
-							end
-						end
-
-						if hover_available then
-							-- Configure hover window for better scrolling
-							vim.lsp.buf.hover()
-						else
-							-- Fallback to default Vim help or show a message
-							local word = vim.fn.expand("<cword>")
-							print("LSP hover not available for: " .. word)
-							-- Try Vim's built-in help as fallback
-							pcall(vim.cmd, "help " .. word)
-						end
-					end, opts)
+					vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
 
 					vim.keymap.set("n", "gi", function()
 						vim.lsp.buf.implementation()
@@ -423,42 +377,15 @@ require("lazy").setup({
 						print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
 					end, opts)
 
-					-- Debug LSP info
-					vim.keymap.set("n", "<leader>li", function()
-						local clients = vim.lsp.get_clients({ bufnr = 0 })
-						if #clients == 0 then
-							print("No LSP clients attached to this buffer")
-						else
-							for _, client in pairs(clients) do
-								print("LSP Client: " .. client.name)
-								print(
-									"  - Hover support: " .. tostring(client.server_capabilities.hoverProvider or false)
-								)
-								print(
-									"  - Definition support: "
-										.. tostring(client.server_capabilities.definitionProvider or false)
-								)
-							end
-						end
-					end, opts)
-					--vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, opts)
 					vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
 					vim.keymap.set({ "n", "v" }, "<leader>a", vim.lsp.buf.code_action, opts)
 					vim.keymap.set("n", "gr", function()
 						vim.lsp.buf.references()
 						vim.cmd("normal! zz")
 					end, opts)
-					-- Formatting is handled by conform.nvim, not LSP directly
-
 					local client = vim.lsp.get_client_by_id(ev.data.client_id)
 
-					-- When https://neovim.io/doc/user/lsp.html#lsp-inlay_hint stabilizes
-					-- *and* there's some way to make it only apply to the current line.
-					-- if client.server_capabilities.inlayHintProvider then
-					--     vim.lsp.inlay_hint(ev.buf, true)
-					-- end
-
-					-- None of this semantics tokens business.
+					-- Disable semantic tokens (treesitter handles highlighting)
 					-- https://www.reddit.com/r/neovim/comments/143efmd/is_it_possible_to_disable_treesitter_completely/
 					client.server_capabilities.semanticTokensProvider = nil
 				end,
@@ -619,18 +546,9 @@ require("lazy").setup({
 					if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
 						return
 					end
-					return { timeout_ms = 2000, lsp_fallback = true }
+					return { timeout_ms = 2000, lsp_format = "fallback" }
 				end,
-				-- Customize formatters
-				formatters = {
-					prettier = {
-						-- You can customize the base config if you need to
-						prepend_args = function(self, ctx)
-							return { "--stdin-filepath", "$FILENAME" }
-						end,
-					},
-				},
-			})
+				})
 		end,
 	},
 	-- GitHub Copilot
@@ -937,25 +855,25 @@ require("lazy").setup({
 			vim.keymap.set({ "n", "x", "o" }, "]f", function()
 				move.goto_next_start("@function.outer", "textobjects")
 			end)
-			vim.keymap.set({ "n", "x", "o" }, "]c", function()
+			vim.keymap.set({ "n", "x", "o" }, "]k", function()
 				move.goto_next_start("@class.outer", "textobjects")
 			end)
 			vim.keymap.set({ "n", "x", "o" }, "]F", function()
 				move.goto_next_end("@function.outer", "textobjects")
 			end)
-			vim.keymap.set({ "n", "x", "o" }, "]C", function()
+			vim.keymap.set({ "n", "x", "o" }, "]K", function()
 				move.goto_next_end("@class.outer", "textobjects")
 			end)
 			vim.keymap.set({ "n", "x", "o" }, "[f", function()
 				move.goto_previous_start("@function.outer", "textobjects")
 			end)
-			vim.keymap.set({ "n", "x", "o" }, "[c", function()
+			vim.keymap.set({ "n", "x", "o" }, "[k", function()
 				move.goto_previous_start("@class.outer", "textobjects")
 			end)
 			vim.keymap.set({ "n", "x", "o" }, "[F", function()
 				move.goto_previous_end("@function.outer", "textobjects")
 			end)
-			vim.keymap.set({ "n", "x", "o" }, "[C", function()
+			vim.keymap.set({ "n", "x", "o" }, "[K", function()
 				move.goto_previous_end("@class.outer", "textobjects")
 			end)
 		end,
@@ -1004,9 +922,30 @@ require("lazy").setup({
 						vim.keymap.set("n", "K", function()
 							vim.cmd.RustLsp({ "hover", "actions" })
 						end, vim.tbl_extend("force", opts, { desc = "Rust hover actions" }))
+						vim.keymap.set("n", "<leader>rt", function()
+							-- Find nearest #[test] or #[db::test] function above cursor
+							local lines = vim.api.nvim_buf_get_lines(bufnr, 0, vim.fn.line("."), false)
+							local test_name = nil
+							for i = #lines, 1, -1 do
+								local match = lines[i]:match("^%s*async?%s*fn%s+([%w_]+)")
+									or lines[i]:match("^%s*fn%s+([%w_]+)")
+								if match then
+									test_name = match
+									break
+								end
+							end
+							if test_name then
+								require("yeet").execute("cargo db-test -- " .. test_name)
+							else
+								print("No test function found above cursor")
+							end
+						end, vim.tbl_extend("force", opts, { desc = "Run Rust test in tmux" }))
 					end,
 					default_settings = {
 						["rust-analyzer"] = {
+							lru = {
+								capacity = 32768,
+							},
 							cargo = {
 								allFeatures = true,
 								buildScripts = {
@@ -1034,14 +973,6 @@ require("lazy").setup({
 				},
 			}
 		end,
-	},
-	-- rustowl: visualize ownership, borrowing, and lifetimes in Rust code
-	{
-		"cordx56/rustowl",
-		version = "*",
-		build = "cargo install rustowl",
-		lazy = false,
-		opts = {},
 	},
 	-- crates.nvim for Cargo.toml management
 	{
@@ -1393,6 +1324,3 @@ vim.api.nvim_create_user_command(
 	{ desc = "Write all files and exit without formatting" }
 )
 vim.api.nvim_create_user_command("QuitAllNoFormat", "noautocmd qa!", { desc = "Quit all without saving or formatting" })
-
--- Add sleuth for automatic indentation detection (like in vimrc)
--- This will help maintain consistent spacing across vim and neovim

@@ -135,3 +135,7 @@ esac
 eval "$(atuin init zsh)"
 
 [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
+export CARGO_NET_GIT_FETCH_WITH_CLI=true
+
+export PATH="$HOME/.kstack/bin:$PATH"
+source <(kstack shell init)
